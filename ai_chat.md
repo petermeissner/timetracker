@@ -112,11 +112,29 @@ This document tracks all user prompts and requests from the development of this 
 **Context:** Fix weekend logic, improve readability, simplify interface
 **Outcome:** Prevented weekend low-time warnings, improved text contrast on warning cards, removed week total and action button for cleaner layout
 
-### 19. Documentation Update Request
+### 19. Documentation Update Request (First)
 **User:** "please add all prompts not already present ai_chat.md to the file"
 
 **Context:** Keep documentation current with recent development
 **Outcome:** Updated this file with all recent prompts and outcomes from the continued development session
+
+### 20. README Documentation Link
+**User:** "link the ai_chat.md file in the readme"
+
+**Context:** Make development history easily discoverable for contributors
+**Outcome:** Added link to ai_chat.md in README under Development section with clear description of contents
+
+### 21. Single Binary Distribution Inquiry
+**User:** "is there a way to package everything into one binary, to make easy to distribute?"
+
+**Context:** Need for easy deployment and distribution without dependencies
+**Outcome:** Implemented Go embed package to bundle all static files into single executable, added cross-platform build instructions, updated README with comprehensive distribution guide
+
+### 22. Documentation Update Request (Second)
+**User:** "please add all prompts not already present ai_chat.md to the file"
+
+**Context:** Continue keeping documentation current with latest changes
+**Outcome:** Added recent prompts about README linking and single binary distribution implementation
 
 ## Project Evolution Summary
 
@@ -129,6 +147,7 @@ The project evolved through multiple phases:
 6. **Data visualization** → table-based entries view with sorting and filtering
 7. **Advanced UI** → 7-day dashboard with smart color coding and weekend awareness
 8. **Polish and refinement** → improved readability, simplified interface, logical styling
+9. **Distribution optimization** → single binary packaging with embedded assets for easy deployment
 
 ## Technical Stack Final State
 
@@ -137,6 +156,8 @@ The project evolved through multiple phases:
 - **Frontend:** Static HTML/CSS/JavaScript with REST API consumption
 - **Pages:** / (add-entry), /entries (list/manage), /config (admin)
 - **API Endpoints:** Full CRUD for entries, categories, and tasks
+- **Distribution:** Single binary with embedded static files using Go embed package
+- **Cross-platform:** Builds for Windows, Linux, macOS with no external dependencies
 
 ## Key Files Created/Modified
 

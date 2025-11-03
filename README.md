@@ -143,7 +143,11 @@ For a complete record of the project's development process, including all user r
 
 ## Building for Production
 
-To build a standalone executable:
+The application can be built into a single, self-contained executable that includes all static files (HTML, CSS, JavaScript) embedded within the binary. This makes distribution extremely easy.
+
+### Build Single Executable
+
+To build a standalone executable with all assets embedded:
 
 ```powershell
 go build -o timesheet.exe main.go
@@ -153,6 +157,50 @@ Then run:
 ```powershell
 ./timesheet.exe
 ```
+
+### Cross-Platform Builds
+
+You can build for different operating systems:
+
+**For Windows:**
+```powershell
+GOOS=windows GOARCH=amd64 go build -o timesheet-windows.exe main.go
+```
+
+**For Linux:**
+```powershell
+GOOS=linux GOARCH=amd64 go build -o timesheet-linux main.go
+```
+
+**For macOS:**
+```powershell
+GOOS=darwin GOARCH=amd64 go build -o timesheet-macos main.go
+```
+
+### Distribution Benefits
+
+- ✅ **Single file distribution** - No need to bundle static folder
+- ✅ **No external dependencies** - All assets embedded in binary
+- ✅ **Cross-platform** - Build for Windows, Linux, macOS
+- ✅ **Easy deployment** - Just copy the executable
+- ✅ **No installation required** - Run directly
+
+The executable will create the SQLite database file (`timesheet.db`) in the same directory when first run.
+
+### How File Embedding Works
+
+The application uses Go 1.16+ `embed` package to bundle all static files directly into the binary:
+
+```go
+//go:embed static/*
+var staticFiles embed.FS
+```
+
+This means:
+- All files in the `static/` directory are compiled into the executable
+- No separate `static/` folder needed for distribution
+- Files are served from memory, improving performance
+- Works across all platforms without path issues
 
 ## Troubleshooting
 

@@ -2,8 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,6 +14,9 @@ import (
 	"github.com/gorilla/mux"
 	_ "modernc.org/sqlite"
 )
+
+//go:embed static/*
+var staticFiles embed.FS
 
 type TimeEntry struct {
 	ID          int       `json:"id"`
@@ -66,8 +71,9 @@ func main() {
 	// Setup routes
 	r := mux.NewRouter()
 
-	// Serve static files
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
+	// Serve embedded static files
+	staticFS, _ := fs.Sub(staticFiles, "static")
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 
 	// API routes
 	r.HandleFunc("/api/entries", getTimeEntries).Methods("GET")
@@ -165,7 +171,13 @@ func initDB() {
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/index.html")
+	data, err := staticFiles.ReadFile("static/index.html")
+	if err != nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(data)
 }
 
 func getTimeEntries(w http.ResponseWriter, r *http.Request) {
@@ -347,11 +359,23 @@ func deleteTimeEntry(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveConfig(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/config.html")
+	data, err := staticFiles.ReadFile("static/config.html")
+	if err != nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(data)
 }
 
 func serveEntries(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/entries.html")
+	data, err := staticFiles.ReadFile("static/entries.html")
+	if err != nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(data)
 }
 
 // Category handlers
