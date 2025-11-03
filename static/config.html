@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration - Timesheet Tracker</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/config.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Configuration</h1>
+            <p>Manage categories and predefined tasks</p>
+            <nav class="header-nav">
+                <a href="/" class="btn btn-secondary">← Back to Timesheet</a>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Categories Section -->
+            <section class="config-section">
+                <div class="section-header">
+                    <h2>Categories</h2>
+                    <button id="addCategoryBtn" class="btn btn-primary">Add Category</button>
+                </div>
+                
+                <div id="categoriesList" class="config-list">
+                    <!-- Categories will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Tasks Section -->
+            <section class="config-section">
+                <div class="section-header">
+                    <h2>Predefined Tasks</h2>
+                    <button id="addTaskBtn" class="btn btn-primary">Add Task</button>
+                </div>
+                
+                <div id="tasksList" class="config-list">
+                    <!-- Tasks will be loaded here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Category Modal -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCategoryModal()">&times;</span>
+            <h2 id="categoryModalTitle">Add Category</h2>
+            <form id="categoryForm">
+                <input type="hidden" id="categoryId">
+                
+                <div class="form-group">
+                    <label for="categoryName">Category Name:</label>
+                    <input type="text" id="categoryName" name="name" required placeholder="e.g., Project Work">
+                </div>
+                
+                <div class="form-group">
+                    <label for="categoryColor">Color:</label>
+                    <div class="color-input-group">
+                        <input type="color" id="categoryColor" name="color" value="#718096">
+                        <span class="color-preview"></span>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Category</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeCategoryModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeTaskModal()">&times;</span>
+            <h2 id="taskModalTitle">Add Task</h2>
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+                
+                <div class="form-group">
+                    <label for="taskName">Task Name:</label>
+                    <input type="text" id="taskName" name="name" required placeholder="e.g., Code Review">
+                </div>
+                
+                <div class="form-group">
+                    <label for="taskCategory">Category:</label>
+                    <select id="taskCategory" name="category_id">
+                        <option value="">No Category</option>
+                        <!-- Categories will be populated here -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="taskDescription">Description (optional):</label>
+                    <textarea id="taskDescription" name="description" rows="3" placeholder="Description of the task"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Task</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/config.js"></script>
+</body>
+</html>

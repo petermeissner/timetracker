@@ -1,0 +1,58 @@
+# Build outputs
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/build/
+/bin/
+/pkg/
+
+# Local compiled binaries (if you build with `go build` without -o)
+/timesheet
+/timesheet.exe
+
+# Go vendor dir
+/vendor/
+
+# Dependency manager files (if used)
+Gopkg.lock
+Gopkg.toml
+
+# Database files (do not commit local SQLite DBs)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+timesheet.db
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Coverage and profiling
+coverage.out
+*.coverprofile
+
+# Node / frontend (not used here but safe to ignore if added later)
+node_modules/
+
+# Misc
+*.bak
+*.tmp

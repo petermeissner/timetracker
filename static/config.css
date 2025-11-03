@@ -1,0 +1,181 @@
+/* Configuration page specific styles */
+
+.header-nav {
+    margin-top: 20px;
+}
+
+.config-section {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.section-header h2 {
+    color: #4a5568;
+    margin: 0;
+}
+
+.config-list {
+    display: grid;
+    gap: 15px;
+}
+
+.config-item {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.config-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.config-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.config-item-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 5px;
+}
+
+.config-item-details {
+    color: #718096;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.config-item-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.category-color-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 10px;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.color-input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+input[type="color"] {
+    width: 50px;
+    height: 40px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.color-preview {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #e2e8f0;
+}
+
+.task-category-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.task-category-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #718096;
+}
+
+.empty-state h3 {
+    margin-bottom: 10px;
+    color: #4a5568;
+}
+
+/* Loading state */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #718096;
+    font-style: italic;
+}
+
+/* Success message styling */
+.success-message {
+    background: #c6f6d5;
+    color: #22543d;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border-left: 4px solid #48bb78;
+}
+
+.error-message {
+    background: #fed7d7;
+    color: #c53030;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border-left: 4px solid #e53e3e;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .section-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .config-item-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .config-item-actions {
+        flex-direction: column;
+    }
+    
+    .color-input-group {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
