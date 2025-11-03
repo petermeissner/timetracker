@@ -1,6 +1,7 @@
 // Global variables
 let entries = [];
 let categories = [];
+let currentSort = { column: 'date', direction: 'desc' };
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -14,8 +15,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup event listeners
     setupEventListeners();
     
-    // Setup category filter
+    // Initialize sort indicators
+    updateSortIndicators();
+    
+    // Setup filters
     document.getElementById('categoryFilter').addEventListener('change', filterEntries);
+    document.getElementById('dateFromFilter').addEventListener('change', filterEntries);
+    document.getElementById('dateToFilter').addEventListener('change', filterEntries);
 });
 
 function setupEventListeners() {
@@ -89,24 +95,50 @@ function updateCategorySelectors() {
 }
 
 function renderEntries() {
-    const entriesList = document.getElementById('entriesList');
+    const entriesTable = document.getElementById('entriesTable');
     const categoryFilter = document.getElementById('categoryFilter').value;
+    const dateFromFilter = document.getElementById('dateFromFilter').value;
+    const dateToFilter = document.getElementById('dateToFilter').value;
     
-    // Filter entries by category if a filter is selected
+    // Filter entries by category and date range
     let filteredEntries = entries;
+    
+    // Category filter
     if (categoryFilter) {
-        filteredEntries = entries.filter(entry => entry.category === categoryFilter);
+        filteredEntries = filteredEntries.filter(entry => entry.category === categoryFilter);
+    }
+    
+    // Date range filter
+    if (dateFromFilter || dateToFilter) {
+        filteredEntries = filteredEntries.filter(entry => {
+            const entryDate = new Date(entry.date);
+            let matchesFrom = true;
+            let matchesTo = true;
+            
+            if (dateFromFilter) {
+                const fromDate = new Date(dateFromFilter);
+                matchesFrom = entryDate >= fromDate;
+            }
+            
+            if (dateToFilter) {
+                const toDate = new Date(dateToFilter);
+                matchesTo = entryDate <= toDate;
+            }
+            
+            return matchesFrom && matchesTo;
+        });
     }
     
     if (filteredEntries.length === 0) {
-        const message = categoryFilter ? 
-            `No entries found for category: ${getCategoryInfo(categoryFilter).name}` :
-            'No time entries yet';
-        const subMessage = categoryFilter ? 
-            'Try selecting a different category or clear the filter.' :
-            'Go back to the main page to add your first time entry!';
+        let message = 'No entries found';
+        let subMessage = 'Try adjusting your filters or clear them to see all entries.';
+        
+        if (!categoryFilter && !dateFromFilter && !dateToFilter) {
+            message = 'No time entries yet';
+            subMessage = 'Go back to the main page to add your first time entry!';
+        }
             
-        entriesList.innerHTML = `
+        entriesTable.innerHTML = `
             <div class="empty-state">
                 <h3>${message}</h3>
                 <p>${subMessage}</p>
@@ -115,38 +147,51 @@ function renderEntries() {
         return;
     }
     
-    // Group entries by date
-    const groupedEntries = groupEntriesByDate(filteredEntries);
+    // Apply current sort if any, otherwise default to date descending
+    const sortedEntries = applySortToEntries(filteredEntries);
     
-    let html = '';
-    for (const [date, dateEntries] of Object.entries(groupedEntries)) {
-        const totalMinutes = dateEntries.reduce((sum, entry) => sum + entry.duration, 0);
-        const totalHours = Math.floor(totalMinutes / 60);
-        const remainingMinutes = totalMinutes % 60;
-        
-        html += `
-            <div class="date-group">
-                <h3 class="date-header">
-                    ${formatDate(date)} 
-                    <span class="date-total">(${totalHours}h ${remainingMinutes}m)</span>
-                </h3>
-                <div class="date-entries">
-        `;
-        
-        dateEntries.forEach(entry => {
-            html += renderEntry(entry);
-        });
-        
-        html += `
-                </div>
-            </div>
-        `;
-    }
+    // Create table
+    let html = `
+        <table class="entries-data-table">
+            <thead>
+                <tr>
+                    <th class="sortable" onclick="sortTable('date')" data-sort="date">
+                        Date <span class="sort-indicator" id="sort-date"></span>
+                    </th>
+                    <th class="sortable" onclick="sortTable('task')" data-sort="task">
+                        Task <span class="sort-indicator" id="sort-task"></span>
+                    </th>
+                    <th class="sortable" onclick="sortTable('category')" data-sort="category">
+                        Category <span class="sort-indicator" id="sort-category"></span>
+                    </th>
+                    <th class="sortable" onclick="sortTable('duration')" data-sort="duration">
+                        Duration <span class="sort-indicator" id="sort-duration"></span>
+                    </th>
+                    <th class="sortable" onclick="sortTable('time')" data-sort="time">
+                        Time <span class="sort-indicator" id="sort-time"></span>
+                    </th>
+                    <th class="sortable" onclick="sortTable('description')" data-sort="description">
+                        Description <span class="sort-indicator" id="sort-description"></span>
+                    </th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
     
-    entriesList.innerHTML = html;
+    sortedEntries.forEach(entry => {
+        html += renderTableRow(entry);
+    });
+    
+    html += `
+            </tbody>
+        </table>
+    `;
+    
+    entriesTable.innerHTML = html;
 }
 
-function renderEntry(entry) {
+function renderTableRow(entry) {
     const hours = Math.floor(entry.duration / 60);
     const minutes = entry.duration % 60;
     const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
@@ -154,28 +199,28 @@ function renderEntry(entry) {
     // Get category display name and color
     const categoryInfo = getCategoryInfo(entry.category || 'other');
     
+    // Format time range or show "Manual entry" if no start/end time
+    const timeRange = entry.start_time && entry.end_time ? 
+        `${formatTime(entry.start_time)} - ${formatTime(entry.end_time)}` : 
+        'Manual';
+    
     return `
-        <div class="entry-item" data-id="${entry.id}">
-            <div class="entry-header">
-                <div class="entry-task">${escapeHtml(entry.task)}</div>
-                <div class="entry-badges">
-                    <div class="category-badge" style="background-color: ${categoryInfo.color}; color: white;">${categoryInfo.name}</div>
-                    <div class="duration-badge">${durationText}</div>
-                </div>
-            </div>
-            
-            <div class="entry-meta">
-                <span>📅 ${formatDate(entry.date)}</span>
-                ${entry.start_time ? `<span>⏰ ${formatTime(entry.start_time)} - ${formatTime(entry.end_time)}</span>` : ''}
-            </div>
-            
-            ${entry.description ? `<div class="entry-description">${escapeHtml(entry.description)}</div>` : ''}
-            
-            <div class="entry-actions">
-                <button class="btn btn-secondary btn-small" onclick="editEntry(${entry.id})">Edit</button>
-                <button class="btn btn-danger btn-small" onclick="deleteEntry(${entry.id})">Delete</button>
-            </div>
-        </div>
+        <tr data-id="${entry.id}">
+            <td class="date-cell">${formatDateShort(entry.date)}</td>
+            <td class="task-cell">${escapeHtml(entry.task)}</td>
+            <td class="category-cell">
+                <span class="category-badge" style="background-color: ${categoryInfo.color}; color: white;">
+                    ${categoryInfo.name}
+                </span>
+            </td>
+            <td class="duration-cell">${durationText}</td>
+            <td class="time-cell">${timeRange}</td>
+            <td class="description-cell">${entry.description ? escapeHtml(entry.description) : '-'}</td>
+            <td class="actions-cell">
+                <button class="btn btn-secondary btn-small" onclick="editEntry(${entry.id})" title="Edit entry">✏️</button>
+                <button class="btn btn-danger btn-small" onclick="deleteEntry(${entry.id})" title="Delete entry">🗑️</button>
+            </td>
+        </tr>
     `;
 }
 
@@ -212,6 +257,98 @@ function updateTotalTime() {
 function filterEntries() {
     renderEntries();
     updateTotalTime();
+}
+
+function sortTable(column) {
+    // Toggle direction if clicking the same column, otherwise set to ascending
+    if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+    }
+    
+    renderEntries();
+    updateSortIndicators();
+}
+
+function applySortToEntries(entries) {
+    return entries.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (currentSort.column) {
+            case 'date':
+                aVal = new Date(a.date);
+                bVal = new Date(b.date);
+                break;
+            case 'task':
+                aVal = a.task.toLowerCase();
+                bVal = b.task.toLowerCase();
+                break;
+            case 'category':
+                aVal = (a.category || 'other').toLowerCase();
+                bVal = (b.category || 'other').toLowerCase();
+                break;
+            case 'duration':
+                aVal = a.duration;
+                bVal = b.duration;
+                break;
+            case 'time':
+                // Sort by start_time if available, otherwise put manual entries at end
+                if (a.start_time && b.start_time) {
+                    aVal = new Date(a.start_time);
+                    bVal = new Date(b.start_time);
+                } else if (a.start_time && !b.start_time) {
+                    return currentSort.direction === 'asc' ? -1 : 1;
+                } else if (!a.start_time && b.start_time) {
+                    return currentSort.direction === 'asc' ? 1 : -1;
+                } else {
+                    aVal = a.id;
+                    bVal = b.id;
+                }
+                break;
+            case 'description':
+                aVal = (a.description || '').toLowerCase();
+                bVal = (b.description || '').toLowerCase();
+                break;
+            default:
+                aVal = a.id;
+                bVal = b.id;
+        }
+        
+        let result;
+        if (typeof aVal === 'string') {
+            result = aVal.localeCompare(bVal);
+        } else if (aVal instanceof Date && bVal instanceof Date) {
+            result = aVal - bVal;
+        } else {
+            result = aVal - bVal;
+        }
+        
+        return currentSort.direction === 'asc' ? result : -result;
+    });
+}
+
+function updateSortIndicators() {
+    // Clear all indicators
+    const indicators = document.querySelectorAll('.sort-indicator');
+    indicators.forEach(indicator => {
+        indicator.textContent = '';
+        indicator.parentElement.classList.remove('sorted-asc', 'sorted-desc');
+    });
+    
+    // Set current sort indicator
+    const currentIndicator = document.getElementById(`sort-${currentSort.column}`);
+    if (currentIndicator) {
+        currentIndicator.textContent = currentSort.direction === 'asc' ? ' ↑' : ' ↓';
+        currentIndicator.parentElement.classList.add(`sorted-${currentSort.direction}`);
+    }
+}
+
+function clearDateFilter() {
+    document.getElementById('dateFromFilter').value = '';
+    document.getElementById('dateToFilter').value = '';
+    filterEntries();
 }
 
 async function editEntry(id) {
@@ -345,6 +482,30 @@ function formatDate(dateString) {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
+    });
+}
+
+function formatDateShort(dateString) {
+    const date = new Date(dateString + 'T00:00:00');
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Check if it's today
+    if (date.toDateString() === today.toDateString()) {
+        return 'Today';
+    }
+    
+    // Check if it's yesterday
+    if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+    }
+    
+    // For other dates, show short format
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
     });
 }
 

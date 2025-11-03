@@ -137,6 +137,10 @@ To modify the application:
 2. **Frontend changes:** Edit files in the `static/` directory and refresh the browser
 3. **Database changes:** The database is created automatically on first run
 
+### Development History
+
+For a complete record of the project's development process, including all user requests and implementation decisions, see [ai_chat.md](ai_chat.md).
+
 ## Building for Production
 
 To build a standalone executable:

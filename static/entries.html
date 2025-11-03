@@ -25,17 +25,30 @@
                         <strong>Total Time Today: <span id="totalTime">0</span> minutes</strong>
                     </div>
                     <div class="filter-section">
-                        <label for="categoryFilter">Filter by Category:</label>
-                        <select id="categoryFilter">
-                            <option value="">All Categories</option>
-                            <option value="project work">Project Work</option>
-                            <option value="project support">Project Support</option>
-                            <option value="other">Other</option>
-                        </select>
+                        <div class="filter-group">
+                            <label for="categoryFilter">Category:</label>
+                            <select id="categoryFilter">
+                                <option value="">All Categories</option>
+                                <option value="project work">Project Work</option>
+                                <option value="project support">Project Support</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="dateFromFilter">From:</label>
+                            <input type="date" id="dateFromFilter">
+                        </div>
+                        <div class="filter-group">
+                            <label for="dateToFilter">To:</label>
+                            <input type="date" id="dateToFilter">
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="btn btn-secondary btn-small" onclick="clearDateFilter()">Clear Dates</button>
+                        </div>
                     </div>
                 </div>
-                <div id="entriesList" class="entries-list">
-                    <!-- Entries will be loaded here -->
+                <div id="entriesTable" class="entries-table">
+                    <!-- Entries table will be loaded here -->
                 </div>
             </section>
         </main>

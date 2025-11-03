@@ -18,6 +18,14 @@
         </header>
 
         <main>
+            <!-- Quick Stats -->
+            <section class="stats-section">
+                <h2>Last 7 Days Summary</h2>
+                <div class="seven-day-breakdown" id="sevenDayBreakdown">
+                    <!-- Days will be populated by JavaScript -->
+                </div>
+            </section>
+
             <!-- Add Time Entry Form -->
             <section class="form-section">
                 <h2>Add Time Entry</h2>
@@ -64,24 +72,6 @@
                         <button type="button" id="cancelEdit" class="btn btn-secondary" style="display: none;">Cancel</button>
                     </div>
                 </form>
-            </section>
-
-            <!-- Quick Stats -->
-            <section class="stats-section">
-                <h2>Today's Summary</h2>
-                <div class="stats-cards">
-                    <div class="stat-card">
-                        <div class="stat-value" id="todayTotal">0h 0m</div>
-                        <div class="stat-label">Total Time Today</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="todayEntries">0</div>
-                        <div class="stat-label">Entries Today</div>
-                    </div>
-                </div>
-                <div class="quick-actions">
-                    <a href="/entries" class="btn btn-primary">View All Entries →</a>
-                </div>
             </section>
         </main>
     </div>

@@ -153,19 +153,90 @@ function handlePredefinedTaskSelect(event) {
 
 
 function updateTodayStats() {
-    const today = new Date().toISOString().split('T')[0];
-    const todayEntries = entries.filter(entry => entry.date === today);
+    const today = new Date();
     
-    const totalMinutes = todayEntries.reduce((sum, entry) => sum + entry.duration, 0);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    const totalText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+    // Format time strings
+    const formatTime = (minutes) => {
+        if (minutes === 0) return '0m';
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        if (hours > 0 && mins > 0) {
+            return `${hours}h ${mins}m`;
+        } else if (hours > 0) {
+            return `${hours}h`;
+        } else {
+            return `${mins}m`;
+        }
+    };
     
-    const todayTotalElement = document.getElementById('todayTotal');
-    const todayEntriesElement = document.getElementById('todayEntries');
+    // Generate the last 7 days (including today)
+    const days = [];
     
-    if (todayTotalElement) todayTotalElement.textContent = totalText;
-    if (todayEntriesElement) todayEntriesElement.textContent = todayEntries.length;
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        // Calculate total for this day
+        const dayEntries = entries.filter(entry => entry.date === dateStr);
+        const dayMinutes = dayEntries.reduce((sum, entry) => sum + entry.duration, 0);
+        
+        // Format weekday and date
+        const weekdayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const shortDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        // Determine if this is today
+        const isToday = dateStr === today.toISOString().split('T')[0];
+        
+        days.push({
+            date: dateStr,
+            weekday: weekdayName,
+            shortDate: shortDate,
+            minutes: dayMinutes,
+            isToday: isToday
+        });
+    }
+    
+    // Generate HTML for the breakdown
+    const breakdownContainer = document.getElementById('sevenDayBreakdown');
+    if (breakdownContainer) {
+        let html = '';
+        
+        days.forEach(day => {
+            const date = new Date(day.date);
+            const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+            const isLowTime = day.minutes < 300 && day.minutes > 0 && !isWeekend; // Less than 5 hours, only for weekdays
+            
+            // Build CSS classes
+            let dayClasses = ['day-item'];
+            
+            if (day.isToday) {
+                dayClasses.push('today');
+            } else if (isWeekend) {
+                dayClasses.push('weekend');
+            }
+            
+            if (isLowTime) {
+                dayClasses.push('low-time');
+            }
+            
+            // Use abbreviated weekday names for compact display
+            const shortWeekday = day.weekday.substring(0, 3); // Mon, Tue, Wed, etc.
+            
+            html += `
+                <div class="${dayClasses.join(' ')}">
+                    <div class="day-info">
+                        <div class="day-name">${shortWeekday}</div>
+                        <div class="day-date">${day.shortDate}</div>
+                    </div>
+                    <div class="day-time">${formatTime(day.minutes)}</div>
+                </div>
+            `;
+        });
+        
+        breakdownContainer.innerHTML = html;
+    }
 }
 
 async function handleFormSubmit(event) {
