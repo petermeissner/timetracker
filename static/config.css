@@ -1,23 +1,37 @@
 /* Configuration page specific styles */
 
+.config-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-items: start;
+}
+
 .header-nav {
     margin-top: 20px;
 }
 
+.header-brand p {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin: 2px 0 0 0;
+}
+
 .config-section {
     background: white;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 30px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    height: fit-content;
 }
 
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
     border-bottom: 2px solid #e2e8f0;
 }
 
@@ -28,14 +42,14 @@
 
 .config-list {
     display: grid;
-    gap: 15px;
+    gap: 10px;
 }
 
 .config-item {
     background: #f7fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 6px;
+    padding: 12px 16px;
     transition: all 0.3s ease;
 }
 
@@ -48,33 +62,35 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 .config-item-name {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: #2d3748;
-    margin-bottom: 5px;
+    margin-bottom: 3px;
+    line-height: 1.2;
 }
 
 .config-item-details {
     color: #718096;
-    font-size: 0.9rem;
-    margin-bottom: 15px;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    line-height: 1.3;
 }
 
 .config-item-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
 .category-color-indicator {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     display: inline-block;
-    margin-right: 10px;
+    margin-right: 8px;
     border: 2px solid #fff;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
@@ -86,18 +102,18 @@
 }
 
 input[type="color"] {
-    width: 50px;
-    height: 40px;
+    width: 40px;
+    height: 32px;
     border: none;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
     padding: 0;
 }
 
 .color-preview {
     display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     border: 2px solid #e2e8f0;
 }
@@ -110,13 +126,20 @@ input[type="color"] {
 }
 
 .task-category-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 16px;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     color: white;
+}
+
+/* Compact buttons for config items */
+.config-item .btn {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    min-height: auto;
 }
 
 .empty-state {
@@ -142,19 +165,21 @@ input[type="color"] {
 .success-message {
     background: #c6f6d5;
     color: #22543d;
-    padding: 12px 16px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    border-left: 4px solid #48bb78;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border-left: 3px solid #48bb78;
+    font-size: 0.9rem;
 }
 
 .error-message {
     background: #fed7d7;
     color: #c53030;
-    padding: 12px 16px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    border-left: 4px solid #e53e3e;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border-left: 3px solid #e53e3e;
+    font-size: 0.9rem;
 }
 
 /* Responsive adjustments */
@@ -177,5 +202,10 @@ input[type="color"] {
     .color-input-group {
         flex-direction: column;
         align-items: flex-start;
+    }
+    
+    .config-columns {
+        grid-template-columns: 1fr;
+        gap: 20px;
     }
 }

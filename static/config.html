@@ -10,37 +10,43 @@
 <body>
     <div class="container">
         <header>
-            <h1>Configuration</h1>
-            <p>Manage categories and predefined tasks</p>
-            <nav class="header-nav">
-                <a href="/" class="btn btn-secondary">← Back to Timesheet</a>
-            </nav>
+            <div class="header-content">
+                <div class="header-brand">
+                    <h1>Configuration</h1>
+                    <p>Manage categories and predefined tasks</p>
+                </div>
+                <nav class="header-nav">
+                    <a href="/" class="btn btn-secondary">← Back to Timesheet</a>
+                </nav>
+            </div>
         </header>
 
         <main>
-            <!-- Categories Section -->
-            <section class="config-section">
-                <div class="section-header">
-                    <h2>Categories</h2>
-                    <button id="addCategoryBtn" class="btn btn-primary">Add Category</button>
-                </div>
-                
-                <div id="categoriesList" class="config-list">
-                    <!-- Categories will be loaded here -->
-                </div>
-            </section>
+            <div class="config-columns">
+                <!-- Categories Section -->
+                <section class="config-section">
+                    <div class="section-header">
+                        <h2>Categories</h2>
+                        <button id="addCategoryBtn" class="btn btn-primary">Add Category</button>
+                    </div>
+                    
+                    <div id="categoriesList" class="config-list">
+                        <!-- Categories will be loaded here -->
+                    </div>
+                </section>
 
-            <!-- Tasks Section -->
-            <section class="config-section">
-                <div class="section-header">
-                    <h2>Predefined Tasks</h2>
-                    <button id="addTaskBtn" class="btn btn-primary">Add Task</button>
-                </div>
-                
-                <div id="tasksList" class="config-list">
-                    <!-- Tasks will be loaded here -->
-                </div>
-            </section>
+                <!-- Tasks Section -->
+                <section class="config-section">
+                    <div class="section-header">
+                        <h2>Predefined Tasks</h2>
+                        <button id="addTaskBtn" class="btn btn-primary">Add Task</button>
+                    </div>
+                    
+                    <div id="tasksList" class="config-list">
+                        <!-- Tasks will be loaded here -->
+                    </div>
+                </section>
+            </div>
         </main>
     </div>
 
