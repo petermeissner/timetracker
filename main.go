@@ -100,7 +100,7 @@ func main() {
 	r.HandleFunc("/config", serveConfig).Methods("GET")
 
 	fmt.Println("Server starting on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe("127.0.0.1:8080", r))
 }
 
 func initDB() {

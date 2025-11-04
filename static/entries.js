@@ -296,8 +296,10 @@ function applySortToEntries(entries) {
             case 'time':
                 // Sort by start_time if available, otherwise put manual entries at end
                 if (a.start_time && b.start_time) {
-                    aVal = new Date(a.start_time);
-                    bVal = new Date(b.start_time);
+                    const aTimeStr = a.start_time.replace('Z', '').replace('T', ' ');
+                    const bTimeStr = b.start_time.replace('Z', '').replace('T', ' ');
+                    aVal = new Date(aTimeStr);
+                    bVal = new Date(bTimeStr);
                 } else if (a.start_time && !b.start_time) {
                     return currentSort.direction === 'asc' ? -1 : 1;
                 } else if (!a.start_time && b.start_time) {
@@ -511,7 +513,9 @@ function formatDateShort(dateString) {
 
 function formatTime(timeString) {
     if (!timeString) return '';
-    const date = new Date(timeString);
+    // Parse times without timezone conversion (treat as local time)
+    const timeStr = timeString.replace('Z', '').replace('T', ' ');
+    const date = new Date(timeStr);
     return date.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',

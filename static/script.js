@@ -75,6 +75,7 @@ async function loadEntries() {
         entries = await response.json() || [];
         console.log('Loaded entries:', entries.length, entries);
         updateTodayStats();
+        loadDayEntries(); // Update time slots after entries are loaded
     } catch (error) {
         console.error('Error loading entries:', error);
         showError('Failed to load time entries');
@@ -283,12 +284,23 @@ async function handleFormSubmit(event) {
         const newEntry = await response.json();
         entries.unshift(newEntry);
         updateTodayStats();
-        loadDayEntries(); // Refresh time slots to show the new booking
+        
+        // Refresh time slots only if the entry is for the currently selected date
+        const selectedDate = document.getElementById('date').value;
+        if (newEntry.date === selectedDate) {
+            loadDayEntries(); // Refresh time slots to show the new booking
+        }
         
         // Reset form
         event.target.reset();
         document.getElementById('date').value = new Date().toISOString().split('T')[0];
         clearSelectedSlots(); // Clear any selected time slots
+        
+        // If we reset the date to today, reload time slots for today
+        const todayDate = new Date().toISOString().split('T')[0];
+        if (todayDate !== selectedDate) {
+            loadDayEntries(); // Load today's entries since we reset to today
+        }
         
         showSuccess('Time entry added successfully!');
     } catch (error) {
@@ -698,45 +710,65 @@ function updateTimeSlotsWithBookings() {
         
         const contentElement = slot.querySelector('.time-slot-content');
         contentElement.innerHTML = '';
+        slot.dataset.tasks = ''; // Clear any existing tasks data
     });
     
-    // Mark booked slots
+    // Group entries by time slot
+    const slotEntries = {};
+    
     dayEntries.forEach(entry => {
         if (entry.start_time && entry.end_time) {
-            const startTime = new Date(entry.start_time);
-            const endTime = new Date(entry.end_time);
+            // Parse times without timezone conversion (treat as local time)
+            const startTimeStr = entry.start_time.replace('Z', '').replace('T', ' ');
+            const endTimeStr = entry.end_time.replace('Z', '').replace('T', ' ');
+            const startTime = new Date(startTimeStr);
+            const endTime = new Date(endTimeStr);
             
             const startHour = startTime.getHours();
             const startMinute = Math.floor(startTime.getMinutes() / 30) * 30;
             const endHour = endTime.getHours();
-            const endMinute = Math.ceil(endTime.getMinutes() / 30) * 30;
+            const endMinute = endTime.getMinutes();
             
-            // Mark all slots within this time range as booked
-            document.querySelectorAll('.time-slot').forEach(slot => {
-                const slotHour = parseInt(slot.dataset.hour);
-                const slotMinute = parseInt(slot.dataset.minute);
+            // Find all slots within this time range
+            const startTotalMinutes = startHour * 60 + startMinute;
+            const endTotalMinutes = endHour * 60 + endMinute;
+            
+            for (let slotMinutes = startTotalMinutes; slotMinutes < endTotalMinutes; slotMinutes += 30) {
+                const slotHour = Math.floor(slotMinutes / 60);
+                const slotMinute = slotMinutes % 60;
+                const slotId = `${slotHour}-${slotMinute}`;
                 
-                const slotTotalMinutes = slotHour * 60 + slotMinute;
-                const startTotalMinutes = startHour * 60 + startMinute;
-                const endTotalMinutes = endHour * 60 + endMinute;
-                
-                if (slotTotalMinutes >= startTotalMinutes && slotTotalMinutes < endTotalMinutes) {
-                    slot.classList.remove('available');
-                    slot.classList.add('booked');
-                    
-                    const contentElement = slot.querySelector('.time-slot-content');
-                    const taskElement = document.createElement('div');
-                    taskElement.className = 'time-slot-task';
-                    taskElement.textContent = entry.task;
-                    
-                    const categoryElement = document.createElement('div');
-                    categoryElement.className = 'time-slot-category';
-                    categoryElement.textContent = entry.category || 'Other';
-                    
-                    contentElement.appendChild(taskElement);
-                    contentElement.appendChild(categoryElement);
+                if (!slotEntries[slotId]) {
+                    slotEntries[slotId] = [];
                 }
-            });
+                slotEntries[slotId].push(entry);
+            }
+        }
+    });
+    
+    // Update each slot with its entries
+    Object.keys(slotEntries).forEach(slotId => {
+        const [hour, minute] = slotId.split('-').map(Number);
+        const slot = document.querySelector(`.time-slot[data-hour="${hour}"][data-minute="${minute}"]`);
+        
+        if (slot) {
+            slot.classList.remove('available');
+            slot.classList.add('booked');
+            
+            const contentElement = slot.querySelector('.time-slot-content');
+            const entries = slotEntries[slotId];
+            
+            // Concatenate task names (first 15 characters each) with semicolons
+            const taskNames = entries.map(entry => 
+                entry.task.length > 15 ? entry.task.substring(0, 15) : entry.task
+            ).join('; ');
+            
+            const taskElement = document.createElement('div');
+            taskElement.className = 'time-slot-task';
+            taskElement.textContent = taskNames;
+            taskElement.title = entries.map(entry => `${entry.task} (${entry.category})`).join('\n'); // Tooltip with full info
+            
+            contentElement.appendChild(taskElement);
         }
     });
 }
