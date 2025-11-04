@@ -35,6 +35,8 @@ type TimeEntryRequest struct {
 	Category    string `json:"category"`
 	Duration    int    `json:"duration"` // in minutes
 	Date        string `json:"date"`
+	StartTime   string `json:"start_time,omitempty"`
+	EndTime     string `json:"end_time,omitempty"`
 }
 
 type Category struct {
@@ -207,10 +209,20 @@ func getTimeEntries(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if startTime.Valid {
-			entry.StartTime, _ = time.Parse("2006-01-02 15:04:05", startTime.String)
+			parsedStartTime, err := time.Parse(time.RFC3339, startTime.String)
+			if err != nil {
+				log.Printf("Error parsing start_time '%s': %v", startTime.String, err)
+			} else {
+				entry.StartTime = parsedStartTime
+			}
 		}
 		if endTime.Valid {
-			entry.EndTime, _ = time.Parse("2006-01-02 15:04:05", endTime.String)
+			parsedEndTime, err := time.Parse(time.RFC3339, endTime.String)
+			if err != nil {
+				log.Printf("Error parsing end_time '%s': %v", endTime.String, err)
+			} else {
+				entry.EndTime = parsedEndTime
+			}
 		}
 
 		entries = append(entries, entry)
@@ -245,16 +257,38 @@ func createTimeEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Calculate start and end times based on duration
-	now := time.Now()
-	startTime := now.Add(-time.Duration(req.Duration) * time.Minute)
-	endTime := now
+	// Calculate start and end times
+	var startTime, endTime time.Time
+
+	if req.StartTime != "" && req.EndTime != "" {
+		// Use provided start and end times from time slot selection (ISO format)
+		var err error
+		startTime, err = time.Parse(time.RFC3339, req.StartTime)
+		if err != nil {
+			http.Error(w, "Invalid start time format. Expected ISO timestamp", http.StatusBadRequest)
+			return
+		}
+
+		endTime, err = time.Parse(time.RFC3339, req.EndTime)
+		if err != nil {
+			http.Error(w, "Invalid end time format. Expected ISO timestamp", http.StatusBadRequest)
+			return
+		}
+
+		// Calculate duration from the time difference
+		req.Duration = int(endTime.Sub(startTime).Minutes())
+	} else {
+		// Fall back to calculating from duration (legacy behavior)
+		now := time.Now()
+		startTime = now.Add(-time.Duration(req.Duration) * time.Minute)
+		endTime = now
+	}
 
 	result, err := db.Exec(`
 		INSERT INTO time_entries (task, description, category, start_time, end_time, duration, date)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`, req.Task, req.Description, req.Category, startTime.Format("2006-01-02 15:04:05"),
-		endTime.Format("2006-01-02 15:04:05"), req.Duration, req.Date)
+	`, req.Task, req.Description, req.Category, startTime.Format(time.RFC3339),
+		endTime.Format(time.RFC3339), req.Duration, req.Date)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

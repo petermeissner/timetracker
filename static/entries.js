@@ -514,7 +514,8 @@ function formatTime(timeString) {
     const date = new Date(timeString);
     return date.toLocaleTimeString('en-US', {
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: false  // Use 24-hour military time format
     });
 }
 
@@ -570,4 +571,159 @@ function showError(message) {
     setTimeout(() => {
         notification.remove();
     }, 5000);
+}
+
+// Excel Export Functionality
+function exportToExcel() {
+    try {
+        // Get filtered entries (same logic as renderEntries)
+        const categoryFilter = document.getElementById('categoryFilter').value;
+        const dateFromFilter = document.getElementById('dateFromFilter').value;
+        const dateToFilter = document.getElementById('dateToFilter').value;
+        
+        let filteredEntries = entries;
+        
+        // Apply category filter
+        if (categoryFilter) {
+            filteredEntries = filteredEntries.filter(entry => entry.category === categoryFilter);
+        }
+        
+        // Apply date range filter
+        if (dateFromFilter || dateToFilter) {
+            filteredEntries = filteredEntries.filter(entry => {
+                const entryDate = new Date(entry.date);
+                let matchesFrom = true;
+                let matchesTo = true;
+                
+                if (dateFromFilter) {
+                    const fromDate = new Date(dateFromFilter);
+                    matchesFrom = entryDate >= fromDate;
+                }
+                
+                if (dateToFilter) {
+                    const toDate = new Date(dateToFilter);
+                    matchesTo = entryDate <= toDate;
+                }
+                
+                return matchesFrom && matchesTo;
+            });
+        }
+        
+        if (filteredEntries.length === 0) {
+            showError('No entries to export with current filters');
+            return;
+        }
+        
+        // Sort entries by date (newest first)
+        const sortedEntries = filteredEntries.sort((a, b) => {
+            return new Date(b.date) - new Date(a.date);
+        });
+        
+        // Prepare data for Excel
+        const excelData = [];
+        
+        // Add header row
+        excelData.push([
+            'Date',
+            'Weekday',
+            'Task',
+            'Category',
+            'Description',
+            'Duration (Minutes)',
+            'Duration (Hours)',
+            'Start Time',
+            'End Time'
+        ]);
+        
+        // Add data rows
+        sortedEntries.forEach(entry => {
+            const entryDate = new Date(entry.date + 'T00:00:00');
+            const weekday = entryDate.toLocaleDateString('en-US', { weekday: 'long' });
+            const hours = (entry.duration / 60).toFixed(2);
+            const startTime = entry.start_time ? formatTime(entry.start_time) : 'Manual';
+            const endTime = entry.end_time ? formatTime(entry.end_time) : 'Manual';
+            
+            excelData.push([
+                entry.date,
+                weekday,
+                entry.task,
+                entry.category || 'Other',
+                entry.description || '',
+                entry.duration,
+                hours,
+                startTime,
+                endTime
+            ]);
+        });
+        
+        // Calculate totals
+        const totalMinutes = sortedEntries.reduce((sum, entry) => sum + entry.duration, 0);
+        const totalHours = (totalMinutes / 60).toFixed(2);
+        
+        // Add summary rows
+        excelData.push([]); // Empty row
+        excelData.push(['SUMMARY']);
+        excelData.push(['Total Entries:', sortedEntries.length]);
+        excelData.push(['Total Minutes:', totalMinutes]);
+        excelData.push(['Total Hours:', totalHours]);
+        
+        // Add filter information
+        if (categoryFilter || dateFromFilter || dateToFilter) {
+            excelData.push([]); // Empty row
+            excelData.push(['FILTERS APPLIED']);
+            if (categoryFilter) {
+                excelData.push(['Category:', categoryFilter]);
+            }
+            if (dateFromFilter) {
+                excelData.push(['From Date:', dateFromFilter]);
+            }
+            if (dateToFilter) {
+                excelData.push(['To Date:', dateToFilter]);
+            }
+        }
+        
+        // Create workbook and worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(excelData);
+        
+        // Set column widths
+        const colWidths = [
+            { wch: 12 }, // Date
+            { wch: 12 }, // Weekday
+            { wch: 25 }, // Task
+            { wch: 15 }, // Category
+            { wch: 35 }, // Description
+            { wch: 12 }, // Duration (Minutes)
+            { wch: 12 }, // Duration (Hours)
+            { wch: 12 }, // Start Time
+            { wch: 12 }  // End Time
+        ];
+        ws['!cols'] = colWidths;
+        
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Time Entries');
+        
+        // Generate filename with current date and filters
+        let filename = 'timesheet_entries_' + new Date().toISOString().split('T')[0];
+        if (categoryFilter) {
+            filename += '_' + categoryFilter.replace(/\s+/g, '_');
+        }
+        if (dateFromFilter && dateToFilter) {
+            filename += '_' + dateFromFilter + '_to_' + dateToFilter;
+        } else if (dateFromFilter) {
+            filename += '_from_' + dateFromFilter;
+        } else if (dateToFilter) {
+            filename += '_until_' + dateToFilter;
+        }
+        filename += '.xlsx';
+        
+        // Save file
+        XLSX.writeFile(wb, filename);
+        
+        showSuccess(`Excel file exported: ${filename}`);
+        
+    } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        showError('Failed to export Excel file. Please try again.');
+    }
 }

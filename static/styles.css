@@ -340,6 +340,134 @@ header p {
     text-align: center;
 }
 
+/* Form with Time Slots Layout */
+.form-with-timeslots {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 30px;
+    align-items: start;
+}
+
+.form-column {
+    min-width: 0;
+}
+
+.timeslots-column {
+    background: #f7fafc;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+.timeslots-header h3 {
+    margin: 0 0 3px 0;
+    color: #4a5568;
+    font-size: 1rem;
+}
+
+.timeslots-instruction {
+    margin: 0 0 8px 0;
+    color: #718096;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.time-slots-container {
+    max-height: 350px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    background: white;
+}
+
+.time-slot {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    position: relative;
+    min-height: 28px;
+}
+
+.time-slot:last-child {
+    border-bottom: none;
+}
+
+.time-slot:hover {
+    background: #edf2f7;
+}
+
+.time-slot.available {
+    background: white;
+}
+
+.time-slot.available:hover {
+    background: #e6fffa;
+    border-left: 3px solid #38b2ac;
+}
+
+.time-slot.selected {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.time-slot.booked {
+    background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
+    border-left: 3px solid #e53e3e;
+    cursor: default;
+}
+
+.time-slot.booked:hover {
+    background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
+}
+
+.time-slot-time {
+    font-weight: 600;
+    min-width: 50px;
+    font-size: 0.8rem;
+}
+
+.time-slot-content {
+    flex: 1;
+    margin-left: 6px;
+}
+
+.time-slot-task {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #2d3748;
+    line-height: 1.2;
+}
+
+.time-slot.booked .time-slot-task {
+    color: #c53030;
+}
+
+.time-slot-category {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    margin-top: 1px;
+}
+
+/* Responsive design for time slots */
+@media (max-width: 1024px) {
+    .form-with-timeslots {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .timeslots-column {
+        order: -1; /* Move time slots above form on mobile */
+    }
+    
+    .time-slots-container {
+        max-height: 250px;
+    }
+}
+
 .entries-header {
     margin-bottom: 20px;
     padding: 15px;

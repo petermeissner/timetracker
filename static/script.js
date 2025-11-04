@@ -243,13 +243,23 @@ async function handleFormSubmit(event) {
     event.preventDefault();
     
     const formData = new FormData(event.target);
+    const startTime = formData.get('startTime');
+    const endTime = formData.get('endTime');
+    const date = formData.get('date');
+    
     const data = {
         task: formData.get('task').trim(),
         description: formData.get('description').trim(),
         category: formData.get('category'),
         duration: parseInt(formData.get('duration')),
-        date: formData.get('date')
+        date: date
     };
+    
+    // Add start_time and end_time if provided
+    if (startTime && endTime) {
+        data.start_time = `${date}T${startTime}:00Z`;  // Send full ISO timestamp
+        data.end_time = `${date}T${endTime}:00Z`;      // Send full ISO timestamp
+    }
     
     if (!data.task || !data.category || !data.duration || !data.date) {
         showError('Please fill in all required fields');
@@ -266,21 +276,24 @@ async function handleFormSubmit(event) {
         });
         
         if (!response.ok) {
-            throw new Error('Failed to create entry');
+            const errorText = await response.text();
+            throw new Error(`Server error (${response.status}): ${errorText}`);
         }
         
         const newEntry = await response.json();
         entries.unshift(newEntry);
         updateTodayStats();
+        loadDayEntries(); // Refresh time slots to show the new booking
         
         // Reset form
         event.target.reset();
         document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        clearSelectedSlots(); // Clear any selected time slots
         
         showSuccess('Time entry added successfully!');
     } catch (error) {
         console.error('Error creating entry:', error);
-        showError('Failed to create time entry');
+        showError(`Failed to create time entry: ${error.message}`);
     }
 }
 
@@ -420,3 +433,310 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Time Slots Functionality
+let selectedTimeSlots = [];
+let isSelecting = false;
+let dayEntries = [];
+
+// Initialize time slots when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup time slots
+    initializeTimeSlots();
+    
+    // Setup date change listener
+    document.getElementById('date').addEventListener('change', handleDateChange);
+    
+    // Setup time input listeners
+    document.getElementById('startTime').addEventListener('change', handleTimeChange);
+    document.getElementById('endTime').addEventListener('change', handleTimeChange);
+    document.getElementById('duration').addEventListener('change', handleDurationChange);
+});
+
+function initializeTimeSlots() {
+    generateTimeSlots();
+    updateSelectedDateDisplay();
+    loadDayEntries();
+}
+
+function generateTimeSlots() {
+    const container = document.getElementById('timeSlots');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // Generate time slots from 6:00 to 22:00 (6 AM to 10 PM) in 30-minute intervals (32 slots)
+    for (let hour = 6; hour < 22; hour++) {
+        for (let minute = 0; minute < 60; minute += 30) {
+            const timeSlot = createTimeSlot(hour, minute);
+            container.appendChild(timeSlot);
+        }
+    }
+}
+
+function createTimeSlot(hour, minute) {
+    const slot = document.createElement('div');
+    slot.className = 'time-slot available';
+    
+    const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    const slotId = `${hour}-${minute}`;
+    slot.dataset.time = timeString;
+    slot.dataset.slotId = slotId;
+    slot.dataset.hour = hour;
+    slot.dataset.minute = minute;
+    
+    const timeElement = document.createElement('div');
+    timeElement.className = 'time-slot-time';
+    timeElement.textContent = timeString;
+    
+    const contentElement = document.createElement('div');
+    contentElement.className = 'time-slot-content';
+    
+    slot.appendChild(timeElement);
+    slot.appendChild(contentElement);
+    
+    // Add click and drag functionality
+    slot.addEventListener('mousedown', handleSlotMouseDown);
+    slot.addEventListener('mouseenter', handleSlotMouseEnter);
+    slot.addEventListener('mouseup', handleSlotMouseUp);
+    
+    return slot;
+}
+
+function handleSlotMouseDown(event) {
+    if (event.target.closest('.time-slot').classList.contains('booked')) return;
+    
+    isSelecting = true;
+    selectedTimeSlots = [];
+    clearSelectedSlots();
+    
+    const slot = event.target.closest('.time-slot');
+    selectSlot(slot);
+    
+    event.preventDefault();
+}
+
+function handleSlotMouseEnter(event) {
+    if (!isSelecting) return;
+    if (event.target.closest('.time-slot').classList.contains('booked')) return;
+    
+    const slot = event.target.closest('.time-slot');
+    selectSlot(slot);
+}
+
+function handleSlotMouseUp(event) {
+    if (!isSelecting) return;
+    
+    isSelecting = false;
+    updateTimeInputsFromSelection();
+}
+
+// Global mouse up listener to handle drag outside slots
+document.addEventListener('mouseup', function() {
+    if (isSelecting) {
+        isSelecting = false;
+        updateTimeInputsFromSelection();
+    }
+});
+
+function selectSlot(slot) {
+    if (!slot || slot.classList.contains('booked')) return;
+    
+    const slotId = slot.dataset.slotId;
+    if (!selectedTimeSlots.includes(slotId)) {
+        selectedTimeSlots.push(slotId);
+        slot.classList.add('selected');
+        slot.classList.remove('available');
+    }
+}
+
+function clearSelectedSlots() {
+    document.querySelectorAll('.time-slot.selected').forEach(slot => {
+        slot.classList.remove('selected');
+        if (!slot.classList.contains('booked')) {
+            slot.classList.add('available');
+        }
+    });
+    selectedTimeSlots = [];
+}
+
+function updateTimeInputsFromSelection() {
+    if (selectedTimeSlots.length === 0) return;
+    
+    // Sort selected slots by time
+    const sortedSlots = selectedTimeSlots.sort((a, b) => {
+        const [hourA, minuteA] = a.split('-').map(Number);
+        const [hourB, minuteB] = b.split('-').map(Number);
+        return (hourA * 60 + minuteA) - (hourB * 60 + minuteB);
+    });
+    
+    // Get start time from first slot
+    const [startHour, startMinute] = sortedSlots[0].split('-').map(Number);
+    const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+    
+    // Calculate end time (last slot + 30 minutes)
+    const [endHour, endMinute] = sortedSlots[sortedSlots.length - 1].split('-').map(Number);
+    let endTotalMinutes = endHour * 60 + endMinute + 30;
+    const endHourFinal = Math.floor(endTotalMinutes / 60) % 24;
+    const endMinuteFinal = endTotalMinutes % 60;
+    const endTime = `${endHourFinal.toString().padStart(2, '0')}:${endMinuteFinal.toString().padStart(2, '0')}`;
+    
+    // Calculate duration
+    const startTotalMinutes = startHour * 60 + startMinute;
+    const duration = (endTotalMinutes - startTotalMinutes);
+    
+    // Update form fields
+    document.getElementById('startTime').value = startTime;
+    document.getElementById('endTime').value = endTime;
+    document.getElementById('duration').value = duration;
+}
+
+function handleTimeChange() {
+    const startTime = document.getElementById('startTime').value;
+    const endTime = document.getElementById('endTime').value;
+    
+    if (startTime && endTime) {
+        // Calculate duration
+        const start = new Date(`2000-01-01T${startTime}`);
+        const end = new Date(`2000-01-01T${endTime}`);
+        
+        if (end > start) {
+            const duration = (end - start) / (1000 * 60); // minutes
+            document.getElementById('duration').value = duration;
+            
+            // Update visual selection
+            updateSlotSelectionFromTimes(startTime, endTime);
+        }
+    }
+}
+
+function handleDurationChange() {
+    const startTime = document.getElementById('startTime').value;
+    const duration = parseInt(document.getElementById('duration').value);
+    
+    if (startTime && duration) {
+        // Calculate end time
+        const start = new Date(`2000-01-01T${startTime}`);
+        const end = new Date(start.getTime() + duration * 60000);
+        const endTime = end.toTimeString().slice(0, 5);
+        
+        document.getElementById('endTime').value = endTime;
+        
+        // Update visual selection
+        updateSlotSelectionFromTimes(startTime, endTime);
+    }
+}
+
+function updateSlotSelectionFromTimes(startTime, endTime) {
+    clearSelectedSlots();
+    
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    const startTotalMinutes = startHour * 60 + startMinute;
+    const endTotalMinutes = endHour * 60 + endMinute;
+    
+    // Select slots that fall within the time range
+    document.querySelectorAll('.time-slot.available').forEach(slot => {
+        const hour = parseInt(slot.dataset.hour);
+        const minute = parseInt(slot.dataset.minute);
+        const slotTotalMinutes = hour * 60 + minute;
+        
+        if (slotTotalMinutes >= startTotalMinutes && slotTotalMinutes < endTotalMinutes) {
+            slot.classList.add('selected');
+            slot.classList.remove('available');
+            selectedTimeSlots.push(slot.dataset.slotId);
+        }
+    });
+}
+
+function handleDateChange() {
+    updateSelectedDateDisplay();
+    loadDayEntries();
+    clearSelectedSlots();
+    
+    // Clear time inputs
+    document.getElementById('startTime').value = '';
+    document.getElementById('endTime').value = '';
+    document.getElementById('duration').value = '60';
+}
+
+function updateSelectedDateDisplay() {
+    const dateInput = document.getElementById('date');
+    const displayElement = document.getElementById('selectedDateDisplay');
+    
+    if (dateInput && displayElement) {
+        const selectedDate = new Date(dateInput.value + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
+        
+        if (selectedDate.getTime() === today.getTime()) {
+            displayElement.textContent = 'Today';
+        } else {
+            displayElement.textContent = selectedDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+    }
+}
+
+function loadDayEntries() {
+    const selectedDate = document.getElementById('date').value;
+    dayEntries = entries.filter(entry => entry.date === selectedDate);
+    
+    updateTimeSlotsWithBookings();
+}
+
+function updateTimeSlotsWithBookings() {
+    // First, reset all slots to available
+    document.querySelectorAll('.time-slot').forEach(slot => {
+        slot.classList.remove('booked', 'selected');
+        slot.classList.add('available');
+        
+        const contentElement = slot.querySelector('.time-slot-content');
+        contentElement.innerHTML = '';
+    });
+    
+    // Mark booked slots
+    dayEntries.forEach(entry => {
+        if (entry.start_time && entry.end_time) {
+            const startTime = new Date(entry.start_time);
+            const endTime = new Date(entry.end_time);
+            
+            const startHour = startTime.getHours();
+            const startMinute = Math.floor(startTime.getMinutes() / 30) * 30;
+            const endHour = endTime.getHours();
+            const endMinute = Math.ceil(endTime.getMinutes() / 30) * 30;
+            
+            // Mark all slots within this time range as booked
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                const slotHour = parseInt(slot.dataset.hour);
+                const slotMinute = parseInt(slot.dataset.minute);
+                
+                const slotTotalMinutes = slotHour * 60 + slotMinute;
+                const startTotalMinutes = startHour * 60 + startMinute;
+                const endTotalMinutes = endHour * 60 + endMinute;
+                
+                if (slotTotalMinutes >= startTotalMinutes && slotTotalMinutes < endTotalMinutes) {
+                    slot.classList.remove('available');
+                    slot.classList.add('booked');
+                    
+                    const contentElement = slot.querySelector('.time-slot-content');
+                    const taskElement = document.createElement('div');
+                    taskElement.className = 'time-slot-task';
+                    taskElement.textContent = entry.task;
+                    
+                    const categoryElement = document.createElement('div');
+                    categoryElement.className = 'time-slot-category';
+                    categoryElement.textContent = entry.category || 'Other';
+                    
+                    contentElement.appendChild(taskElement);
+                    contentElement.appendChild(categoryElement);
+                }
+            });
+        }
+    });
+}
