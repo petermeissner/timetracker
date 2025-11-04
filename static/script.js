@@ -229,7 +229,7 @@ function updateTodayStats() {
             const shortWeekday = day.weekday.substring(0, 3); // Mon, Tue, Wed, etc.
             
             html += `
-                <div class="${dayClasses.join(' ')}">
+                <div class="${dayClasses.join(' ')}" data-date="${day.date}" onclick="selectDay('${day.date}')">
                     <div class="day-info">
                         <div class="day-name">${shortWeekday}</div>
                         <div class="day-date">${day.shortDate}</div>
@@ -240,7 +240,34 @@ function updateTodayStats() {
         });
         
         breakdownContainer.innerHTML = html;
+        
+        // Mark today as initially selected
+        const today = new Date().toISOString().split('T')[0];
+        const todayElement = breakdownContainer.querySelector(`[data-date="${today}"]`);
+        if (todayElement) {
+            todayElement.classList.add('selected');
+        }
     }
+}
+
+function selectDay(selectedDate) {
+    // Update the form date input
+    document.getElementById('date').value = selectedDate;
+    
+    // Update visual selection in the seven-day breakdown
+    document.querySelectorAll('.day-item').forEach(item => {
+        if (item.dataset.date === selectedDate) {
+            item.classList.add('selected');
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+    
+    // Update the selected date display in time slots
+    updateSelectedDateDisplay();
+    
+    // Load entries and time slots for the selected day
+    loadDayEntries();
 }
 
 async function handleFormSubmit(event) {
