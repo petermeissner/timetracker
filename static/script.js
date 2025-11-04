@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupEventListeners() {
     // Form submission
     document.getElementById('timeEntryForm').addEventListener('submit', handleFormSubmit);
+    
+    // Add Daily button
+    document.getElementById('addDailyBtn').addEventListener('click', handleAddDaily);
 }
 
 async function loadCategories() {
@@ -309,7 +312,59 @@ async function handleFormSubmit(event) {
     }
 }
 
-
+async function handleAddDaily() {
+    const selectedDate = document.getElementById('date').value;
+    
+    // Check if a "Daily" entry already exists for this date
+    const existingDaily = entries.find(entry => 
+        entry.date === selectedDate && 
+        entry.task.toLowerCase() === 'daily' && 
+        entry.category === 'project support'
+    );
+    
+    if (existingDaily) {
+        showError('Daily entry already exists for this date');
+        return;
+    }
+    
+    // Create the daily entry data
+    const dailyData = {
+        task: 'Daily',
+        description: '',
+        category: 'project support',
+        duration: 30, // 30 minutes
+        date: selectedDate,
+        start_time: `${selectedDate}T09:00:00Z`,
+        end_time: `${selectedDate}T09:30:00Z`
+    };
+    
+    try {
+        const response = await fetch('/api/entries', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dailyData)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error (${response.status}): ${errorText}`);
+        }
+        
+        const newEntry = await response.json();
+        entries.unshift(newEntry);
+        updateTodayStats();
+        
+        // Refresh time slots to show the new booking
+        loadDayEntries();
+        
+        showSuccess('Daily entry added successfully!');
+    } catch (error) {
+        console.error('Error creating daily entry:', error);
+        showError(`Failed to create daily entry: ${error.message}`);
+    }
+}
 
 // Utility functions
 function getCategoryInfo(categoryName) {

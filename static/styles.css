@@ -73,6 +73,12 @@ header p {
     padding-bottom: 0;
 }
 
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
 .form-group {
     margin-bottom: 20px;
 }
