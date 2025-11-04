@@ -418,8 +418,86 @@ Script features include:
 - Updated .gitignore to exclude distribution folder
 - Updated README.md with build documentation
 
-### 58. Documentation Update Request (Current)
+### 58. Documentation Update Request (Previous)
 **User:** "Add a summary of the conversation / changes in the ai_chat.md not already included"
 
 **Context:** Document recent desktop application exploration and cross-platform build system implementation
 **Outcome:** Updated ai_chat.md with comprehensive coverage of Electron exploration, setup and cancellation, plus detailed documentation of the successful cross-platform build system with PowerShell automation
+
+### 59. End-to-End Testing Inquiry
+**User:** "is there a way to have end-to-end tests?"
+
+**Context:** User interested in comprehensive testing capabilities for the web application
+**Outcome:** Presented multiple E2E testing approaches including Playwright (recommended), Cypress, Selenium with Go, and Go-based HTTP testing, explaining pros/cons and implementation strategies
+
+### 60. Selenium E2E Testing Setup Request
+**User:** "can you write e2e tests with selenium and go?"
+
+**Context:** User chose Selenium WebDriver with Go for E2E testing to maintain language consistency
+**Outcome:** Created comprehensive E2E testing framework including:
+- Complete test setup infrastructure (`tests/setup_test.go`)
+- Main page tests (`tests/main_page_test.go`) - form submission, time slots, navigation
+- Entries page tests (`tests/entries_page_test.go`) - table operations, filtering, CRUD operations
+- Config page tests (`tests/config_page_test.go`) - category/task management, responsive design
+- Test runner script (`run-e2e-tests.ps1`) with ChromeDriver auto-download
+- Test documentation (`tests/README.md`)
+- Updated go.mod with Selenium dependencies
+- Modified main.go for test configuration support
+
+### 61. E2E Testing Abandonment
+**User:** "let us not work on the e2e tests for now."
+
+**Context:** User decided to postpone E2E testing implementation
+**Outcome:** Acknowledged decision to pause E2E testing work and shifted focus to immediate bug fixes
+
+### 62. Category Validation Bug Report
+**User:** "when adding a category in the ui and then using it to create entries i get the following error: 'Failed to create time entry: Server error (400): Invalid category. Must be 'project work', 'project support', or 'other''"
+
+**Context:** Critical bug preventing use of custom categories created through the configuration UI
+**Outcome:** Identified hardcoded category validation in both `createTimeEntry` and `updateTimeEntry` functions that only accepted the three original categories instead of validating against the database
+
+### 63. Category Validation Fix Implementation
+**User:** "i threw away all changes, please fix the code again"
+
+**Context:** User reverted all E2E testing changes and requested only the category validation fix
+**Outcome:** Successfully implemented dynamic category validation fix:
+
+**Before (Hardcoded):**
+```go
+validCategories := map[string]bool{
+    "project work":    true,
+    "project support": true, 
+    "other":           true,
+}
+if !validCategories[req.Category] {
+    http.Error(w, "Invalid category. Must be 'project work', 'project support', or 'other'", http.StatusBadRequest)
+    return
+}
+```
+
+**After (Dynamic Database Validation):**
+```go
+// Validate category exists in database
+var categoryExists bool
+err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE name = ?)", req.Category).Scan(&categoryExists)
+if err != nil {
+    http.Error(w, "Database error while validating category", http.StatusInternalServerError)
+    return
+}
+if !categoryExists {
+    http.Error(w, "Invalid category. Category does not exist in the system", http.StatusBadRequest)
+    return
+}
+```
+
+Applied fix to both `createTimeEntry` and `updateTimeEntry` functions, enabling:
+- ✅ Custom categories created in config UI work immediately for time entries
+- ✅ Dynamic validation against actual database categories
+- ✅ Better error messages for invalid categories
+- ✅ Future-proof system that automatically supports new categories
+
+### 64. Documentation Update Request (Current)
+**User:** "Add a summary of the conversation / changes in the ai_chat.md not already included"
+
+**Context:** Document the E2E testing exploration and critical category validation bug fix
+**Outcome:** Updated ai_chat.md with comprehensive coverage of E2E testing framework development (later abandoned), the category validation bug discovery, and the successful implementation of dynamic database-driven category validation that enables full use of the configuration system
