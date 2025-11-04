@@ -463,12 +463,46 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('startTime').addEventListener('change', handleTimeChange);
     document.getElementById('endTime').addEventListener('change', handleTimeChange);
     document.getElementById('duration').addEventListener('change', handleDurationChange);
+    
+    // Readjust time slots on window resize
+    window.addEventListener('resize', function() {
+        setTimeout(adjustTimeSlotsHeight, 100); // Small delay to ensure DOM is updated
+    });
 });
 
 function initializeTimeSlots() {
     generateTimeSlots();
+    adjustTimeSlotsHeight();
     updateSelectedDateDisplay();
     loadDayEntries();
+}
+
+function adjustTimeSlotsHeight() {
+    const container = document.getElementById('timeSlots');
+    if (!container) return;
+    
+    // Calculate available height
+    const timeSlotsColumn = container.closest('.timeslots-column');
+    if (!timeSlotsColumn) return;
+    
+    const columnHeight = timeSlotsColumn.clientHeight;
+    const headerHeight = timeSlotsColumn.querySelector('.timeslots-header')?.offsetHeight || 0;
+    const instructionHeight = timeSlotsColumn.querySelector('.timeslots-instruction')?.offsetHeight || 0;
+    const padding = 40; // Account for padding and margins
+    
+    const availableHeight = columnHeight - headerHeight - instructionHeight - padding;
+    const slotCount = container.children.length;
+    
+    if (slotCount > 0 && availableHeight > 0) {
+        const maxSlotHeight = Math.floor(availableHeight / slotCount);
+        const optimalHeight = Math.max(16, Math.min(24, maxSlotHeight)); // Min 16px, max 24px
+        
+        // Apply dynamic height to all slots
+        Array.from(container.children).forEach(slot => {
+            slot.style.height = `${optimalHeight}px`;
+            slot.style.minHeight = `${optimalHeight}px`;
+        });
+    }
 }
 
 function generateTimeSlots() {
@@ -477,9 +511,12 @@ function generateTimeSlots() {
     
     container.innerHTML = '';
     
-    // Generate time slots from 6:00 to 22:00 (6 AM to 10 PM) in 30-minute intervals (32 slots)
-    for (let hour = 6; hour < 22; hour++) {
-        for (let minute = 0; minute < 60; minute += 30) {
+    // Generate time slots from 7:15 to 17:00 (7:15 AM to 5:00 PM) in 15-minute intervals (39 slots)
+    for (let hour = 7; hour <= 17; hour++) {
+        const startMinute = (hour === 7) ? 15 : 0; // Start at 7:15 for first hour
+        const endMinute = (hour === 17) ? 0 : 60; // End at 17:00 for last hour
+        
+        for (let minute = startMinute; minute < endMinute; minute += 15) {
             const timeSlot = createTimeSlot(hour, minute);
             container.appendChild(timeSlot);
         }
@@ -586,9 +623,9 @@ function updateTimeInputsFromSelection() {
     const [startHour, startMinute] = sortedSlots[0].split('-').map(Number);
     const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
     
-    // Calculate end time (last slot + 30 minutes)
+    // Calculate end time (last slot + 15 minutes)
     const [endHour, endMinute] = sortedSlots[sortedSlots.length - 1].split('-').map(Number);
-    let endTotalMinutes = endHour * 60 + endMinute + 30;
+    let endTotalMinutes = endHour * 60 + endMinute + 15;
     const endHourFinal = Math.floor(endTotalMinutes / 60) % 24;
     const endMinuteFinal = endTotalMinutes % 60;
     const endTime = `${endHourFinal.toString().padStart(2, '0')}:${endMinuteFinal.toString().padStart(2, '0')}`;
@@ -700,6 +737,9 @@ function loadDayEntries() {
     dayEntries = entries.filter(entry => entry.date === selectedDate);
     
     updateTimeSlotsWithBookings();
+    
+    // Ensure proper height adjustment after slots are updated
+    setTimeout(adjustTimeSlotsHeight, 50);
 }
 
 function updateTimeSlotsWithBookings() {
@@ -725,7 +765,7 @@ function updateTimeSlotsWithBookings() {
             const endTime = new Date(endTimeStr);
             
             const startHour = startTime.getHours();
-            const startMinute = Math.floor(startTime.getMinutes() / 30) * 30;
+            const startMinute = Math.floor(startTime.getMinutes() / 15) * 15;
             const endHour = endTime.getHours();
             const endMinute = endTime.getMinutes();
             
@@ -733,7 +773,7 @@ function updateTimeSlotsWithBookings() {
             const startTotalMinutes = startHour * 60 + startMinute;
             const endTotalMinutes = endHour * 60 + endMinute;
             
-            for (let slotMinutes = startTotalMinutes; slotMinutes < endTotalMinutes; slotMinutes += 30) {
+            for (let slotMinutes = startTotalMinutes; slotMinutes < endTotalMinutes; slotMinutes += 15) {
                 const slotHour = Math.floor(slotMinutes / 60);
                 const slotMinute = slotMinutes % 60;
                 const slotId = `${slotHour}-${slotMinute}`;

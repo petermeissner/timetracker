@@ -374,23 +374,25 @@ header p {
 .timeslots-column {
     background: #f7fafc;
     border-radius: 8px;
-    padding: 20px;
+    padding: 12px;
     border: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
     height: 100%;
+    max-height: calc(85vh - 60px);
+    min-height: 400px;
 }
 
 .timeslots-header h3 {
-    margin: 0 0 3px 0;
+    margin: 0 0 2px 0;
     color: #4a5568;
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
 .timeslots-instruction {
-    margin: 0 0 8px 0;
+    margin: 0 0 4px 0;
     color: #718096;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-style: italic;
 }
 
@@ -400,19 +402,22 @@ header p {
     border: 1px solid #e2e8f0;
     border-radius: 4px;
     background: white;
-    min-height: 400px;
+    height: 100%;
+    min-height: 300px;
 }
 
 .time-slot {
     display: flex;
     align-items: center;
-    padding: 4px 8px;
+    padding: 2px 6px;
     border-bottom: 1px solid #f1f5f9;
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
     position: relative;
-    min-height: 28px;
+    min-height: 16px;
+    font-size: 0.8rem;
+    line-height: 1;
 }
 
 .time-slot:last-child {
@@ -449,20 +454,21 @@ header p {
 
 .time-slot-time {
     font-weight: 600;
-    min-width: 50px;
-    font-size: 0.8rem;
+    min-width: 42px;
+    font-size: 0.75rem;
+    line-height: 1;
 }
 
 .time-slot-content {
     flex: 1;
-    margin-left: 6px;
+    margin-left: 4px;
 }
 
 .time-slot-task {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: #2d3748;
-    line-height: 1.2;
+    line-height: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
