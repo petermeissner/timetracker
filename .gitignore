@@ -9,6 +9,7 @@
 /build/
 /bin/
 /pkg/
+/distribution/
 
 # Local compiled binaries (if you build with `go build` without -o)
 /timesheet

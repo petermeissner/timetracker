@@ -160,22 +160,20 @@ Then run:
 
 ### Cross-Platform Builds
 
-You can build for different operating systems:
+Use the automated build script to create binaries for all platforms:
 
-**For Windows:**
 ```powershell
-GOOS=windows GOARCH=amd64 go build -o timesheet-windows.exe main.go
+.\build-cross-platform.ps1
 ```
 
-**For Linux:**
-```powershell
-GOOS=linux GOARCH=amd64 go build -o timesheet-linux main.go
-```
+This script builds optimized binaries for:
+- **Windows** (amd64) - `timesheet-windows-amd64.exe`
+- **Linux** (amd64) - `timesheet-linux-amd64` 
+- **Linux** (arm64) - `timesheet-linux-arm64` (Raspberry Pi, ARM servers)
+- **macOS** (amd64) - `timesheet-macos-amd64` (Intel Macs)
+- **macOS** (arm64) - `timesheet-macos-arm64` (Apple Silicon Macs)
 
-**For macOS:**
-```powershell
-GOOS=darwin GOARCH=amd64 go build -o timesheet-macos main.go
-```
+All binaries are placed in the `distribution/` folder and include size optimization (`-ldflags "-s -w"`).
 
 ### Distribution Benefits
 
