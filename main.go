@@ -246,14 +246,15 @@ func createTimeEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate category
-	validCategories := map[string]bool{
-		"project work":    true,
-		"project support": true,
-		"other":           true,
+	// Validate category exists in database
+	var categoryExists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE name = ?)", req.Category).Scan(&categoryExists)
+	if err != nil {
+		http.Error(w, "Database error while validating category", http.StatusInternalServerError)
+		return
 	}
-	if !validCategories[req.Category] {
-		http.Error(w, "Invalid category. Must be 'project work', 'project support', or 'other'", http.StatusBadRequest)
+	if !categoryExists {
+		http.Error(w, "Invalid category. Category does not exist in the system", http.StatusBadRequest)
 		return
 	}
 
@@ -333,14 +334,15 @@ func updateTimeEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate category
-	validCategories := map[string]bool{
-		"project work":    true,
-		"project support": true,
-		"other":           true,
+	// Validate category exists in database
+	var categoryExists bool
+	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE name = ?)", req.Category).Scan(&categoryExists)
+	if err != nil {
+		http.Error(w, "Database error while validating category", http.StatusInternalServerError)
+		return
 	}
-	if !validCategories[req.Category] {
-		http.Error(w, "Invalid category. Must be 'project work', 'project support', or 'other'", http.StatusBadRequest)
+	if !categoryExists {
+		http.Error(w, "Invalid category. Category does not exist in the system", http.StatusBadRequest)
 		return
 	}
 
