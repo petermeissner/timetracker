@@ -3,12 +3,14 @@ let entries = [];
 let editingId = null;
 let categories = [];
 let predefinedTasks = [];
+let date_selected = null; // Track the currently selected date
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-    // Set today's date as default
+    // Initialize selected date to today on first load
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('date').value = today;
+    date_selected = today;
+    document.getElementById('date').value = date_selected;
     
     // Load data
     loadCategories();
@@ -241,22 +243,26 @@ function updateTodayStats() {
         
         breakdownContainer.innerHTML = html;
         
-        // Mark today as initially selected
-        const today = new Date().toISOString().split('T')[0];
-        const todayElement = breakdownContainer.querySelector(`[data-date="${today}"]`);
-        if (todayElement) {
-            todayElement.classList.add('selected');
+        // Mark the currently selected date as selected
+        if (date_selected) {
+            const selectedElement = breakdownContainer.querySelector(`[data-date="${date_selected}"]`);
+            if (selectedElement) {
+                selectedElement.classList.add('selected');
+            }
         }
     }
 }
 
 function selectDay(selectedDate) {
+    // Update the app variable to track selected date
+    date_selected = selectedDate;
+    
     // Update the form date input
-    document.getElementById('date').value = selectedDate;
+    document.getElementById('date').value = date_selected;
     
     // Update visual selection in the seven-day breakdown
     document.querySelectorAll('.day-item').forEach(item => {
-        if (item.dataset.date === selectedDate) {
+        if (item.dataset.date === date_selected) {
             item.classList.add('selected');
         } else {
             item.classList.remove('selected');
@@ -315,22 +321,15 @@ async function handleFormSubmit(event) {
         entries.unshift(newEntry);
         updateTodayStats();
         
-        // Refresh time slots only if the entry is for the currently selected date
-        const selectedDate = document.getElementById('date').value;
-        if (newEntry.date === selectedDate) {
+        // Refresh time slots for the currently selected date if the entry was added to it
+        if (newEntry.date === date_selected) {
             loadDayEntries(); // Refresh time slots to show the new booking
         }
         
-        // Reset form
+        // Reset form fields but keep the currently selected date
         event.target.reset();
-        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('date').value = date_selected; // Restore the selected date
         clearSelectedSlots(); // Clear any selected time slots
-        
-        // If we reset the date to today, reload time slots for today
-        const todayDate = new Date().toISOString().split('T')[0];
-        if (todayDate !== selectedDate) {
-            loadDayEntries(); // Load today's entries since we reset to today
-        }
         
         showSuccess('Time entry added successfully!');
     } catch (error) {
@@ -340,11 +339,11 @@ async function handleFormSubmit(event) {
 }
 
 async function handleAddDaily() {
-    const selectedDate = document.getElementById('date').value;
+    if (!date_selected) return;
     
     // Check if a "Daily" entry already exists for this date
     const existingDaily = entries.find(entry => 
-        entry.date === selectedDate && 
+        entry.date === date_selected && 
         entry.task.toLowerCase() === 'daily' && 
         entry.category === 'project support'
     );
@@ -360,9 +359,9 @@ async function handleAddDaily() {
         description: '',
         category: 'project support',
         duration: 30, // 30 minutes
-        date: selectedDate,
-        start_time: `${selectedDate}T09:00:00Z`,
-        end_time: `${selectedDate}T09:30:00Z`
+        date: date_selected,
+        start_time: `${date_selected}T09:00:00Z`,
+        end_time: `${date_selected}T09:30:00Z`
     };
     
     try {
@@ -383,13 +382,50 @@ async function handleAddDaily() {
         entries.unshift(newEntry);
         updateTodayStats();
         
-        // Refresh time slots to show the new booking
+        // Refresh time slots since the daily entry was added to the currently selected date
         loadDayEntries();
         
         showSuccess('Daily entry added successfully!');
     } catch (error) {
         console.error('Error creating daily entry:', error);
         showError(`Failed to create daily entry: ${error.message}`);
+    }
+}
+
+async function deleteTimeEntry(entryId, taskName) {
+    if (!confirm(`Are you sure you want to delete "${taskName}"?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/entries/${entryId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error (${response.status}): ${errorText}`);
+        }
+        
+        // Find the entry before removing it to check its date
+        const deletedEntry = entries.find(entry => entry.id === entryId);
+        
+        // Remove the entry from the local entries array
+        const entryIndex = entries.findIndex(entry => entry.id === entryId);
+        if (entryIndex > -1) {
+            entries.splice(entryIndex, 1);
+        }
+        
+        // Update stats and refresh time slots if the deleted entry was on the currently selected date
+        updateTodayStats();
+        if (deletedEntry && deletedEntry.date === date_selected) {
+            loadDayEntries();
+        }
+        
+        showSuccess(`"${taskName}" deleted successfully!`);
+    } catch (error) {
+        console.error('Error deleting entry:', error);
+        showError(`Failed to delete entry: ${error.message}`);
     }
 }
 
@@ -782,6 +818,9 @@ function updateSlotSelectionFromTimes(startTime, endTime) {
 }
 
 function handleDateChange() {
+    // Update the app variable when date input changes manually
+    date_selected = document.getElementById('date').value;
+    
     updateSelectedDateDisplay();
     loadDayEntries();
     clearSelectedSlots();
@@ -790,14 +829,22 @@ function handleDateChange() {
     document.getElementById('startTime').value = '';
     document.getElementById('endTime').value = '';
     document.getElementById('duration').value = '60';
+    
+    // Update visual selection in the seven-day breakdown
+    document.querySelectorAll('.day-item').forEach(item => {
+        if (item.dataset.date === date_selected) {
+            item.classList.add('selected');
+        } else {
+            item.classList.remove('selected');
+        }
+    });
 }
 
 function updateSelectedDateDisplay() {
-    const dateInput = document.getElementById('date');
     const displayElement = document.getElementById('selectedDateDisplay');
     
-    if (dateInput && displayElement) {
-        const selectedDate = new Date(dateInput.value + 'T00:00:00');
+    if (displayElement && date_selected) {
+        const selectedDate = new Date(date_selected + 'T00:00:00');
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         selectedDate.setHours(0, 0, 0, 0);
@@ -815,8 +862,9 @@ function updateSelectedDateDisplay() {
 }
 
 function loadDayEntries() {
-    const selectedDate = document.getElementById('date').value;
-    dayEntries = entries.filter(entry => entry.date === selectedDate);
+    if (!date_selected) return;
+    
+    dayEntries = entries.filter(entry => entry.date === date_selected);
     
     updateTimeSlotsWithBookings();
     
@@ -833,6 +881,11 @@ function updateTimeSlotsWithBookings() {
         const contentElement = slot.querySelector('.time-slot-content');
         contentElement.innerHTML = '';
         slot.dataset.tasks = ''; // Clear any existing tasks data
+        slot.dataset.entryIds = ''; // Clear entry IDs
+        
+        // Clear any category colors
+        slot.style.borderLeft = '';
+        slot.style.backgroundColor = '';
     });
     
     // Group entries by time slot
@@ -880,17 +933,48 @@ function updateTimeSlotsWithBookings() {
             const contentElement = slot.querySelector('.time-slot-content');
             const entries = slotEntries[slotId];
             
-            // Concatenate task names (first 15 characters each) with semicolons
-            const taskNames = entries.map(entry => 
-                entry.task.length > 15 ? entry.task.substring(0, 15) : entry.task
-            ).join('; ');
+            // Store entry IDs in the slot for deletion
+            slot.dataset.entryIds = entries.map(entry => entry.id).join(',');
             
-            const taskElement = document.createElement('div');
-            taskElement.className = 'time-slot-task';
-            taskElement.textContent = taskNames;
-            taskElement.title = entries.map(entry => `${entry.task} (${entry.category})`).join('\n'); // Tooltip with full info
+            // Create task display with delete functionality and category colors
+            entries.forEach((entry, index) => {
+                const entryElement = document.createElement('div');
+                entryElement.className = 'time-slot-entry';
+                entryElement.dataset.entryId = entry.id;
+                
+                // Get category info for color
+                const categoryInfo = getCategoryInfo(entry.category);
+                
+                // Apply category color as border or background
+                entryElement.style.borderLeft = `3px solid ${categoryInfo.color}`;
+                entryElement.style.backgroundColor = `${categoryInfo.color}15`; // 15 is ~8% opacity in hex
+                
+                const taskElement = document.createElement('span');
+                taskElement.className = 'time-slot-task';
+                taskElement.textContent = entry.task.length > 35 ? entry.task.substring(0, 35) + '...' : entry.task;
+                taskElement.title = `${entry.task} (${entry.category})${entry.description ? '\n' + entry.description : ''}`;
+                
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'time-slot-delete';
+                deleteButton.innerHTML = '×';
+                deleteButton.title = `Delete: ${entry.task}`;
+                deleteButton.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteTimeEntry(entry.id, entry.task);
+                };
+                
+                entryElement.appendChild(taskElement);
+                entryElement.appendChild(deleteButton);
+                contentElement.appendChild(entryElement);
+            });
             
-            contentElement.appendChild(taskElement);
+            // If there's only one category for this slot, apply the color to the entire slot
+            const uniqueCategories = [...new Set(entries.map(entry => entry.category))];
+            if (uniqueCategories.length === 1) {
+                const categoryInfo = getCategoryInfo(uniqueCategories[0]);
+                slot.style.borderLeft = `4px solid ${categoryInfo.color}`;
+                slot.style.backgroundColor = `${categoryInfo.color}10`; // Even more subtle for the whole slot
+            }
         }
     });
 }

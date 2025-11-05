@@ -493,13 +493,12 @@ header {
 }
 
 .time-slot.booked {
-    background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
-    border-left: 3px solid #e53e3e;
     cursor: default;
 }
 
 .time-slot.booked:hover {
-    background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .time-slot-time {
@@ -514,6 +513,21 @@ header {
     margin-left: 4px;
 }
 
+.time-slot-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
+    padding: 1px 2px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    transition: background-color 0.2s ease;
+}
+
+.time-slot-entry:last-child {
+    margin-bottom: 0;
+}
+
 .time-slot-task {
     font-size: 0.7rem;
     font-weight: 600;
@@ -522,11 +536,44 @@ header {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    width: 100%;
+    flex: 1;
 }
 
 .time-slot.booked .time-slot-task {
-    color: #c53030;
+    color: #1C1917;
+}
+
+.time-slot-delete {
+    background: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 2px;
+    width: 14px;
+    height: 14px;
+    font-size: 10px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.time-slot-entry:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.time-slot-entry:hover .time-slot-delete {
+    opacity: 1;
+}
+
+.time-slot-delete:hover {
+    background: #c53030;
+    transform: scale(1.1);
 }
 
 /* Responsive design for time slots */
