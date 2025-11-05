@@ -496,8 +496,122 @@ Applied fix to both `createTimeEntry` and `updateTimeEntry` functions, enabling:
 - ✅ Better error messages for invalid categories
 - ✅ Future-proof system that automatically supports new categories
 
-### 64. Documentation Update Request (Current)
+### 64. Documentation Update Request
 **User:** "Add a summary of the conversation / changes in the ai_chat.md not already included"
 
 **Context:** Document the E2E testing exploration and critical category validation bug fix
 **Outcome:** Updated ai_chat.md with comprehensive coverage of E2E testing framework development (later abandoned), the category validation bug discovery, and the successful implementation of dynamic database-driven category validation that enables full use of the configuration system
+
+### 65. Direct Booking Removal Feature Request
+**User:** "I want to be able to remove booking directly from the time slots"
+
+**Context:** User needed ability to delete time entries directly from the time slot interface without navigating to separate entries page
+**Outcome:** Implemented comprehensive delete functionality in time slots:
+
+**Technical Implementation:**
+- Modified `updateTimeSlotsWithBookings()` to create individual entry elements with delete buttons
+- Added `deleteTimeEntry(entryId, taskName)` function with confirmation dialog
+- Enhanced time slot structure to display multiple entries per slot with individual delete controls
+- Added `time-slot-entry` containers with delete buttons that appear on hover
+- Integrated with existing DELETE API endpoint (`/api/entries/{id}`)
+
+**Features Added:**
+- ✅ Individual delete buttons (×) for each booking in time slots
+- ✅ Hover-based delete button visibility for clean interface
+- ✅ Confirmation dialog before deletion
+- ✅ Immediate visual feedback with success/error notifications
+- ✅ Automatic refresh of time slots and stats after deletion
+- ✅ Proper handling of multiple entries in same time slot
+- ✅ Tooltip showing full task details
+
+**CSS Enhancements:**
+- Added `.time-slot-entry`, `.time-slot-delete` styles
+- Hover effects for delete button visibility
+- Smooth transitions and visual feedback
+
+### 66. Form Submission Bug Report
+**User:** "when entering a booking it is not shown directly in the times slots, what i think happens instead is that the time slots of the current day are loaded instead - check, report and suggest a fix"
+
+**Context:** Time slot display not updating correctly after adding new entries
+**Outcome:** Identified and diagnosed the issue:
+
+**Problem Analysis:**
+- Form submission created entry for selected date (e.g., yesterday)
+- Time slots refreshed correctly for that date initially
+- Form reset unconditionally changed date back to today
+- Second `loadDayEntries()` call loaded today's slots instead of selected date's slots
+- Result: User couldn't see their newly created booking
+
+**Root Cause:** Form reset logic was overriding the selected date context, causing time slots to switch to today instead of staying on the date where entry was added.
+
+### 67. Global Date State Management Solution
+**User:** "do it like that: - keep track of the current date selected in an app variable 'date_selected' - if the main page is loaded the first time, set the date to the current date - if any day is clicked, store that date in the 'date_selected' - on refreshing the page check the app variable"
+
+**Context:** User requested cleaner state management approach using global variable
+**Outcome:** Implemented comprehensive date state management system:
+
+**Technical Implementation:**
+- Added global variable: `let date_selected = null;`
+- Initialized `date_selected` to today's date on page load
+- Updated all functions to use `date_selected` as single source of truth
+- Modified form submission to preserve selected date after entry creation
+- Enhanced day selection to update global state
+- Fixed manual date input changes to sync with global state
+
+**Functions Updated:**
+- `selectDay()` - Updates `date_selected` and maintains visual state
+- `handleFormSubmit()` - Uses `date_selected`, restores after form reset
+- `handleDateChange()` - Syncs manual date input with global state
+- `updateSelectedDateDisplay()` - Uses global state instead of DOM reading
+- `loadDayEntries()` - Filters entries based on global state
+- `handleAddDaily()` - Uses global state for date context
+
+**Benefits:**
+- ✅ Single source of truth for selected date
+- ✅ Consistent behavior across all operations
+- ✅ Immediate visual feedback when adding entries
+- ✅ Persistent date selection during form operations  
+- ✅ Cleaner, more predictable code architecture
+
+### 68. Time Slot Color Coding Feature Request
+**User:** "the time slots should be marked according to the color of the categories"
+
+**Context:** Visual enhancement to quickly identify category allocation in time slots
+**Outcome:** Implemented comprehensive color-coded time slot system:
+
+**Technical Implementation:**
+- Enhanced `updateTimeSlotsWithBookings()` to apply category colors
+- Used existing `getCategoryInfo()` function to get category colors
+- Applied colors at both entry level and slot level
+- Added proper color cleanup when resetting slots
+
+**Color Application Strategy:**
+- **Individual entries:** 3px colored left border + subtle background tint (~8% opacity)
+- **Unified slots:** When all entries in slot are same category, 4px slot border + background tint (~6% opacity)
+- **Color source:** Uses existing category colors from database (green, orange, gray defaults)
+
+**CSS Enhancements:**
+- Added transitions for smooth color changes
+- Enhanced hover effects compatible with colored backgrounds
+- Individual entry highlighting on hover for better delete button visibility
+- Subtle visual lift effect on slot hover instead of color changes
+
+**Features:**
+- ✅ Individual entry color coding with category colors
+- ✅ Unified slot coloring when single category dominates
+- ✅ Proper color cleanup and reset functionality
+- ✅ Smooth transitions and hover effects
+- ✅ Non-intrusive styling that maintains readability
+- ✅ Consistent with existing application color scheme
+
+**Visual Benefits:**
+- Quick visual identification of time allocation by category
+- Easy spotting of work type distribution throughout the day
+- Enhanced user experience with immediate color feedback
+- Maintains clean, professional interface while adding functional color coding
+
+### 69. Current Documentation Update (Latest)
+**User:** "Add a summary of the conversation / changes in the ai_chat.md not already included"
+
+**Context:** Document recent features: direct booking removal, form submission bug fix, global date state management, and color-coded time slots
+**Outcome:** Comprehensive documentation of the latest development phase covering UI enhancements, state management improvements, and visual feedback systems that significantly enhanced the time slot interface usability
