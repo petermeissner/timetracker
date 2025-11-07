@@ -120,11 +120,15 @@ func CreateTimeEntry(w http.ResponseWriter, r *http.Request) {
 		endTime.Format(time.RFC3339), duration, currentDate)
 
 	if err != nil {
+		log.Printf("ERROR: Failed to insert time entry - Task: %s, Category: %s, Start: %s, End: %s - Error: %v",
+			req.Task, req.Category, req.StartTime, req.EndTime, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	id, _ := result.LastInsertId()
+	log.Printf("INSERT: Created time entry ID %d - Task: %s, Category: %s, Duration: %d min, Start: %s, End: %s",
+		id, req.Task, req.Category, duration, startTime.Format("2006-01-02 15:04"), endTime.Format("2006-01-02 15:04"))
 
 	entry := TimeEntry{
 		ID:          int(id),
@@ -205,9 +209,14 @@ func UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
 		endTime.Format(time.RFC3339), duration, currentDate, id)
 
 	if err != nil {
+		log.Printf("ERROR: Failed to update time entry ID %d - Task: %s, Category: %s, Start: %s, End: %s - Error: %v",
+			id, req.Task, req.Category, req.StartTime, req.EndTime, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("UPDATE: Modified time entry ID %d - Task: %s, Category: %s, Duration: %d min, Start: %s, End: %s",
+		id, req.Task, req.Category, duration, startTime.Format("2006-01-02 15:04"), endTime.Format("2006-01-02 15:04"))
 
 	entry := TimeEntry{
 		ID:          id,
@@ -229,11 +238,45 @@ func DeleteTimeEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM time_entries WHERE id = ?", id)
+	// Get entry details before deletion for logging
+	var task, category string
+	var startTime, endTime sql.NullString
+	err = db.QueryRow("SELECT task, category, start_time, end_time FROM time_entries WHERE id = ?", id).
+		Scan(&task, &category, &startTime, &endTime)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("WARNING: Attempted to delete non-existent time entry ID %d", id)
+			http.Error(w, "Time entry not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("ERROR: Failed to fetch time entry ID %d for deletion - Error: %v", id, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	_, err = db.Exec("DELETE FROM time_entries WHERE id = ?", id)
+	if err != nil {
+		log.Printf("ERROR: Failed to delete time entry ID %d - Error: %v", id, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Format times for logging
+	startTimeStr := "N/A"
+	endTimeStr := "N/A"
+	if startTime.Valid {
+		if parsed, parseErr := time.Parse(time.RFC3339, startTime.String); parseErr == nil {
+			startTimeStr = parsed.Format("2006-01-02 15:04")
+		}
+	}
+	if endTime.Valid {
+		if parsed, parseErr := time.Parse(time.RFC3339, endTime.String); parseErr == nil {
+			endTimeStr = parsed.Format("2006-01-02 15:04")
+		}
+	}
+
+	log.Printf("DELETE: Removed time entry ID %d - Task: %s, Category: %s, Time: %s to %s",
+		id, task, category, startTimeStr, endTimeStr)
 
 	w.WriteHeader(http.StatusNoContent)
 }

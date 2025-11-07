@@ -3,6 +3,7 @@ package timesheet
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -60,11 +61,15 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 	result, err := db.Exec("INSERT INTO tasks (name, category_id, description) VALUES (?, ?, ?)",
 		req.Name, categoryID, req.Description)
 	if err != nil {
+		log.Printf("ERROR: Failed to insert task - Name: %s, CategoryID: %v, Description: %s - Error: %v",
+			req.Name, req.CategoryID, req.Description, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	id, _ := result.LastInsertId()
+	log.Printf("INSERT: Created task ID %d - Name: %s, CategoryID: %d, Description: %s",
+		id, req.Name, req.CategoryID, req.Description)
 	task := Task{
 		ID:          int(id),
 		Name:        req.Name,
@@ -104,9 +109,14 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 	_, err = db.Exec("UPDATE tasks SET name = ?, category_id = ?, description = ? WHERE id = ?",
 		req.Name, categoryID, req.Description, id)
 	if err != nil {
+		log.Printf("ERROR: Failed to update task ID %d - Name: %s, CategoryID: %v, Description: %s - Error: %v",
+			id, req.Name, req.CategoryID, req.Description, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("UPDATE: Modified task ID %d - Name: %s, CategoryID: %d, Description: %s",
+		id, req.Name, req.CategoryID, req.Description)
 
 	task := Task{
 		ID:          id,
@@ -126,11 +136,35 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM tasks WHERE id = ?", id)
+	// Get task details before deletion for logging
+	var name, description string
+	var categoryID sql.NullInt64
+	err = db.QueryRow("SELECT name, category_id, description FROM tasks WHERE id = ?", id).
+		Scan(&name, &categoryID, &description)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("WARNING: Attempted to delete non-existent task ID %d", id)
+			http.Error(w, "Task not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("ERROR: Failed to fetch task ID %d for deletion - Error: %v", id, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	_, err = db.Exec("DELETE FROM tasks WHERE id = ?", id)
+	if err != nil {
+		log.Printf("ERROR: Failed to delete task ID %d - Error: %v", id, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	categoryIDVal := 0
+	if categoryID.Valid {
+		categoryIDVal = int(categoryID.Int64)
+	}
+	log.Printf("DELETE: Removed task ID %d - Name: %s, CategoryID: %d, Description: %s",
+		id, name, categoryIDVal, description)
 
 	w.WriteHeader(http.StatusNoContent)
 }
