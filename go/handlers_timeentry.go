@@ -16,9 +16,9 @@ func GetTimeEntries(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	rows, err := db.Query(`
-		SELECT id, task, description, category, start_time, end_time, duration, date 
+		SELECT id, task, description, category, start_time, end_time 
 		FROM time_entries 
-		ORDER BY date DESC, id DESC
+		ORDER BY start_time DESC, id DESC
 	`)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -32,7 +32,7 @@ func GetTimeEntries(w http.ResponseWriter, r *http.Request) {
 		var startTime, endTime sql.NullString
 
 		err := rows.Scan(&entry.ID, &entry.Task, &entry.Description, &entry.Category,
-			&startTime, &endTime, &entry.Duration, &entry.Date)
+			&startTime, &endTime)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -71,8 +71,8 @@ func CreateTimeEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate required fields
-	if req.Task == "" || req.Duration <= 0 || req.Date == "" || req.Category == "" {
-		http.Error(w, "Task, category, duration, and date are required", http.StatusBadRequest)
+	if req.Task == "" || req.Category == "" || req.StartTime == "" || req.EndTime == "" {
+		http.Error(w, "Task, category, start_time, and end_time are required", http.StatusBadRequest)
 		return
 	}
 
@@ -88,38 +88,36 @@ func CreateTimeEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Calculate start and end times
-	var startTime, endTime time.Time
-
-	if req.StartTime != "" && req.EndTime != "" {
-		// Use provided start and end times from time slot selection (ISO format)
-		var err error
-		startTime, err = time.Parse(time.RFC3339, req.StartTime)
-		if err != nil {
-			http.Error(w, "Invalid start time format. Expected ISO timestamp", http.StatusBadRequest)
-			return
-		}
-
-		endTime, err = time.Parse(time.RFC3339, req.EndTime)
-		if err != nil {
-			http.Error(w, "Invalid end time format. Expected ISO timestamp", http.StatusBadRequest)
-			return
-		}
-
-		// Calculate duration from the time difference
-		req.Duration = int(endTime.Sub(startTime).Minutes())
-	} else {
-		// Fall back to calculating from duration (legacy behavior)
-		now := time.Now()
-		startTime = now.Add(-time.Duration(req.Duration) * time.Minute)
-		endTime = now
+	// Parse start and end times (required fields)
+	startTime, err := time.Parse(time.RFC3339, req.StartTime)
+	if err != nil {
+		http.Error(w, "Invalid start time format. Expected ISO timestamp", http.StatusBadRequest)
+		return
 	}
+
+	endTime, err := time.Parse(time.RFC3339, req.EndTime)
+	if err != nil {
+		http.Error(w, "Invalid end time format. Expected ISO timestamp", http.StatusBadRequest)
+		return
+	}
+
+	// Validate that end time is after start time
+	if endTime.Before(startTime) || endTime.Equal(startTime) {
+		http.Error(w, "End time must be after start time", http.StatusBadRequest)
+		return
+	}
+
+	// Calculate duration from the time difference
+	duration := int(endTime.Sub(startTime).Minutes())
+
+	// Get current date for compatibility with existing database schema
+	currentDate := time.Now().Format("2006-01-02")
 
 	result, err := db.Exec(`
 		INSERT INTO time_entries (task, description, category, start_time, end_time, duration, date)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`, req.Task, req.Description, req.Category, startTime.Format(time.RFC3339),
-		endTime.Format(time.RFC3339), req.Duration, req.Date)
+		endTime.Format(time.RFC3339), duration, currentDate)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -135,8 +133,6 @@ func CreateTimeEntry(w http.ResponseWriter, r *http.Request) {
 		Category:    req.Category,
 		StartTime:   startTime,
 		EndTime:     endTime,
-		Duration:    req.Duration,
-		Date:        req.Date,
 	}
 
 	json.NewEncoder(w).Encode(entry)
@@ -159,8 +155,8 @@ func UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate required fields
-	if req.Task == "" || req.Duration <= 0 || req.Date == "" || req.Category == "" {
-		http.Error(w, "Task, category, duration, and date are required", http.StatusBadRequest)
+	if req.Task == "" || req.Category == "" || req.StartTime == "" || req.EndTime == "" {
+		http.Error(w, "Task, category, start_time, and end_time are required", http.StatusBadRequest)
 		return
 	}
 
@@ -176,17 +172,37 @@ func UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Calculate start and end times based on duration
-	now := time.Now()
-	startTime := now.Add(-time.Duration(req.Duration) * time.Minute)
-	endTime := now
+	// Parse start and end times (required fields)
+	startTime, err := time.Parse(time.RFC3339, req.StartTime)
+	if err != nil {
+		http.Error(w, "Invalid start time format. Expected ISO timestamp", http.StatusBadRequest)
+		return
+	}
+
+	endTime, err := time.Parse(time.RFC3339, req.EndTime)
+	if err != nil {
+		http.Error(w, "Invalid end time format. Expected ISO timestamp", http.StatusBadRequest)
+		return
+	}
+
+	// Validate that end time is after start time
+	if endTime.Before(startTime) || endTime.Equal(startTime) {
+		http.Error(w, "End time must be after start time", http.StatusBadRequest)
+		return
+	}
+
+	// Calculate duration from the time difference
+	duration := int(endTime.Sub(startTime).Minutes())
+
+	// Get current date for compatibility with existing database schema
+	currentDate := time.Now().Format("2006-01-02")
 
 	_, err = db.Exec(`
 		UPDATE time_entries 
 		SET task = ?, description = ?, category = ?, start_time = ?, end_time = ?, duration = ?, date = ?
 		WHERE id = ?
-	`, req.Task, req.Description, req.Category, startTime.Format("2006-01-02 15:04:05"),
-		endTime.Format("2006-01-02 15:04:05"), req.Duration, req.Date, id)
+	`, req.Task, req.Description, req.Category, startTime.Format(time.RFC3339),
+		endTime.Format(time.RFC3339), duration, currentDate, id)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -200,8 +216,6 @@ func UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
 		Category:    req.Category,
 		StartTime:   startTime,
 		EndTime:     endTime,
-		Duration:    req.Duration,
-		Date:        req.Date,
 	}
 
 	json.NewEncoder(w).Encode(entry)

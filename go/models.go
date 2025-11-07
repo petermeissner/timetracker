@@ -9,18 +9,14 @@ type TimeEntry struct {
 	Category    string    `json:"category"`
 	StartTime   time.Time `json:"start_time"`
 	EndTime     time.Time `json:"end_time"`
-	Duration    int       `json:"duration"` // in minutes
-	Date        string    `json:"date"`
 }
 
 type TimeEntryRequest struct {
 	Task        string `json:"task"`
 	Description string `json:"description"`
 	Category    string `json:"category"`
-	Duration    int    `json:"duration"` // in minutes
-	Date        string `json:"date"`
-	StartTime   string `json:"start_time,omitempty"`
-	EndTime     string `json:"end_time,omitempty"`
+	StartTime   string `json:"start_time"`
+	EndTime     string `json:"end_time"`
 }
 
 type Category struct {
