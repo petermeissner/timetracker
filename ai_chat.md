@@ -676,8 +676,63 @@ Applied fix to both `createTimeEntry` and `updateTimeEntry` functions, enabling:
 
 **Important Takeaway:** Denormalization should not be presented as "smart design" - it's a trade-off that sacrifices data consistency for user experience convenience. Always acknowledge the integrity risks when deviating from normalized data principles.
 
-### 73. Documentation of Data Design Discussion (Current)
+### 73. Documentation of Data Design Discussion 
 **User:** "document this findings by updating the ai_chat.md"
 
 **Context:** Request to document the data design discussion and correction about denormalization principles
 **Outcome:** Added comprehensive entry covering the original question about date column redundancy, the initial flawed analysis that incorrectly promoted denormalization, and the important user correction emphasizing data integrity principles and the real justification for the current dual structure based on user workflow flexibility rather than optimization
+
+### 74. Code Organization - Model Entity Extraction
+**User:** "separate the handlers in handler.go according to the model entity they are handling"
+
+**Context:** Need to organize handlers by entity type for better code maintainability and structure
+**Outcome:** Successfully separated the monolithic `handlers.go` file into entity-specific handler files:
+- `timeentry_handlers.go` - Time entry CRUD operations (GetTimeEntries, CreateTimeEntry, UpdateTimeEntry, DeleteTimeEntry)
+- `category_handlers.go` - Category CRUD operations (GetCategories, CreateCategory, UpdateCategory, DeleteCategory)  
+- `task_handlers.go` - Task CRUD operations (GetTasks, CreateTask, UpdateTask, DeleteTask)
+- `static_handlers.go` - Static file serving (ServeIndex, ServeConfig, ServeEntries)
+- `handlers.go` - Documentation file explaining the new structure
+
+**Benefits Achieved:**
+- Better organization with handlers grouped by model entity
+- Improved maintainability with smaller, focused files
+- Easier navigation for developers working on specific entities
+- Reduced file size from 400+ lines to multiple focused files
+- Clean build with no breaking changes to function signatures
+
+### 75. File Naming Convention Standardization (Current)
+**User:** "the naming schema should not be static_handlers.go but be handlers_static.go. apply this naming convention"
+
+**Context:** Request to standardize file naming with consistent `handlers_<entity>.go` pattern
+**Outcome:** Renamed all handler files to follow the proper naming convention:
+- `static_handlers.go` → `handlers_static.go` 
+- `category_handlers.go` → `handlers_category.go`
+- `task_handlers.go` → `handlers_task.go` 
+- `timeentry_handlers.go` → `handlers_timeentry.go`
+
+**Technical Implementation:**
+- Created new files with proper naming convention
+- Preserved all handler function code and imports
+- Removed old files to eliminate function redeclaration errors
+- Maintained package consistency and build success
+- Updated handlers.go documentation file to reflect new naming
+
+**Final File Structure:**
+```
+go/
+├── handlers_static.go      # Static file serving handlers
+├── handlers_category.go    # Category CRUD handlers  
+├── handlers_task.go        # Task CRUD handlers
+├── handlers_timeentry.go   # Time entry CRUD handlers
+├── handlers.go            # Documentation file
+├── models.go              # Data models 
+├── router.go              # Route setup
+├── db.go                  # Database initialization
+└── global.go              # Shared variables
+```
+
+**Benefits:**
+- Consistent naming pattern across all handler files
+- Alphabetical sorting groups all handler files together
+- Clear entity identification from filename
+- Professional code organization following Go conventions
