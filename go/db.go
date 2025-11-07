@@ -4,8 +4,56 @@ import (
 	"log"
 )
 
+const CURRENT_DB_VERSION = 1
+
+// GetTargetDBVersion returns the target database version for migration planning
+func GetTargetDBVersion() int {
+	return CURRENT_DB_VERSION
+}
+
 func InitDB() {
 	var err error
+
+	// Create version table first
+	createVersionQuery := `
+	CREATE TABLE IF NOT EXISTS db_version (
+		id INTEGER PRIMARY KEY,
+		version INTEGER NOT NULL,
+		applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	_, err = db.Exec(createVersionQuery)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Check current database version
+	var currentVersion int
+	err = db.QueryRow("SELECT COALESCE(MAX(version), 0) FROM db_version").Scan(&currentVersion)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Apply migrations if needed
+	if currentVersion < CURRENT_DB_VERSION {
+		applyMigrations(currentVersion)
+	}
+}
+
+func applyMigrations(fromVersion int) {
+	log.Printf("Applying database migrations from version %d to %d", fromVersion, CURRENT_DB_VERSION)
+
+	// Migration 1: Initial schema
+	if fromVersion < 1 {
+		applyMigration1()
+		recordMigration(1)
+	}
+
+	log.Printf("Database migrations completed. Current version: %d", CURRENT_DB_VERSION)
+}
+
+func applyMigration1() {
+	log.Println("Applying migration 1: Creating initial tables")
 
 	createTimeEntryQuery := `
 	CREATE TABLE IF NOT EXISTS time_entries (
@@ -20,7 +68,7 @@ func InitDB() {
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 
-	_, err = db.Exec(createTimeEntryQuery)
+	_, err := db.Exec(createTimeEntryQuery)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,4 +115,12 @@ func InitDB() {
 		('project work', '#48bb78'),
 		('project support', '#ed8936'),
 		('other', '#718096')`)
+}
+
+func recordMigration(version int) {
+	_, err := db.Exec("INSERT INTO db_version (version) VALUES (?)", version)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Migration %d applied successfully", version)
 }

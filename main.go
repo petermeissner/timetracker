@@ -20,8 +20,15 @@ var db *sql.DB
 func main() {
 	var err error
 
+	dbPath := "./timesheet.db"
+
+	// Check database version and create backup if needed
+	if err := timesheet.CheckAndBackupDatabase(dbPath); err != nil {
+		log.Fatalf("Database backup failed: %v", err)
+	}
+
 	// connect to the database
-	db, err = sql.Open("sqlite", "./timesheet.db")
+	db, err = sql.Open("sqlite", dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
