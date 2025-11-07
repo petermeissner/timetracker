@@ -1,14 +1,13 @@
 package timesheet
 
 import (
-	"embed"
 	"io/fs"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
-func SetUpRouter(staticFiles embed.FS) *mux.Router {
+func SetUpRouter() *mux.Router {
 	r := mux.NewRouter()
 
 	// Serve embedded static files

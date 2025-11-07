@@ -26,19 +26,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// make the db accessible to the timesheet package
+	// Set shared resources for the timesheet package
+	timesheet.SetStaticFiles(staticFiles)
 	timesheet.SetDB(db)
 
 	// Initialize database
 	timesheet.InitDB()
 	defer db.Close()
 
-	// Set shared resources for the timesheet package
-	timesheet.SetStaticFiles(staticFiles)
-
 	// Setup routes
-	r := timesheet.SetUpRouter(staticFiles)
+	router := timesheet.SetUpRouter()
 
+	// spin up server
 	fmt.Println("Server starting on http://localhost:8080")
-	log.Fatal(http.ListenAndServe("127.0.0.1:8080", r))
+	log.Fatal(http.ListenAndServe("127.0.0.1:8080", router))
 }
