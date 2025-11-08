@@ -49,10 +49,75 @@ timesheet/
    go run main.go
    ```
 
+   Or with custom parameters:
+   ```powershell
+   go run main.go -port 8081 -db ./custom.db
+   ```
+
 4. **Open your web browser and navigate to:**
    ```
    http://localhost:8080
    ```
+   (or the custom port you specified)
+
+## Command-Line Parameters
+
+The application supports the following command-line parameters and environment variables:
+
+### Command-Line Flags:
+- `-port` - Port to run the server on (default: "8080")
+- `-db` - Path to the SQLite database file (default: "./timesheet.db")
+- `-help` - Show usage information
+
+### Environment Variables:
+- `PORT` - Port to run the server on (overridden by -port flag)
+- `DB_PATH` - Path to the SQLite database file (overridden by -db flag)
+
+### Examples:
+
+**Using Command-Line Flags:**
+```powershell
+# Use default settings
+go run main.go
+
+# Use custom port
+go run main.go -port 8081
+
+# Use custom database file
+go run main.go -db ./my-timesheet.db
+
+# Use custom port and database
+go run main.go -port 8081 -db ./my-timesheet.db
+
+# Show help
+go run main.go -help
+```
+
+**Using Environment Variables:**
+```powershell
+# PowerShell syntax
+$env:PORT="8081"; go run main.go
+$env:DB_PATH="./my-timesheet.db"; go run main.go
+$env:PORT="8081"; $env:DB_PATH="./my-timesheet.db"; go run main.go
+
+# Command Prompt syntax
+set PORT=8081 && go run main.go
+set DB_PATH=./my-timesheet.db && go run main.go
+```
+
+**Precedence:** Command-line flags take priority over environment variables.
+
+### Built Executable Usage:
+
+After building the application (`go build .`), you can use the same parameters:
+
+```powershell
+# Default settings
+.\timesheet.exe
+
+# Custom port and database
+.\timesheet.exe -port 8081 -db ./my-timesheet.db
+```
 
 ## API Endpoints
 
@@ -158,6 +223,11 @@ Then run:
 ./timesheet.exe
 ```
 
+Or with custom parameters:
+```powershell
+./timesheet.exe -port 8081 -db ./production.db
+```
+
 ### Cross-Platform Builds
 
 Use the automated build script to create binaries for all platforms:
@@ -213,10 +283,5 @@ This means:
 Potential improvements that could be added:
 
 - User authentication and multiple users
-- Time tracking with start/stop functionality
-- Export data to CSV/PDF
 - Time reporting and analytics
-- Categories and projects
 - Time goals and targets
-- Dark mode theme
-- Mobile app version
