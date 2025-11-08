@@ -73,7 +73,7 @@ async function loadEntries() {
         updateTotalTime();
     } catch (error) {
         console.error('Error loading entries:', error);
-        showError('Failed to load time entries');
+        Utils.showError('Failed to load time entries');
     }
 }
 
@@ -86,8 +86,8 @@ function updateCategorySelectors() {
     let filterOptions = '<option value="">All Categories</option>';
     
     categories.forEach(category => {
-        categoryOptions += `<option value="${category.name}">${escapeHtml(category.name)}</option>`;
-        filterOptions += `<option value="${category.name}">${escapeHtml(category.name)}</option>`;
+        categoryOptions += `<option value="${category.name}">${Utils.escapeHtml(category.name)}</option>`;
+        filterOptions += `<option value="${category.name}">${Utils.escapeHtml(category.name)}</option>`;
     });
     
     if (editCategorySelect) editCategorySelect.innerHTML = categoryOptions;
@@ -197,17 +197,17 @@ function renderTableRow(entry) {
     const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
     
     // Get category display name and color
-    const categoryInfo = getCategoryInfo(entry.category || 'other');
+    const categoryInfo = Utils.getCategoryInfo(entry.category || 'other', categories);
     
     // Format time range or show "Manual entry" if no start/end time
     const timeRange = entry.start_time && entry.end_time ? 
-        `${formatTime(entry.start_time)} - ${formatTime(entry.end_time)}` : 
+        `${Utils.formatTime(entry.start_time)} - ${Utils.formatTime(entry.end_time)}` : 
         'Manual';
     
     return `
         <tr data-id="${entry.id}">
-            <td class="date-cell">${formatDateShort(entry.date)}</td>
-            <td class="task-cell">${escapeHtml(entry.task)}</td>
+            <td class="date-cell">${Utils.formatDateShort(entry.date)}</td>
+            <td class="task-cell">${Utils.escapeHtml(entry.task)}</td>
             <td class="category-cell">
                 <span class="category-badge" style="background-color: ${categoryInfo.color}; color: white;">
                     ${categoryInfo.name}
@@ -215,7 +215,7 @@ function renderTableRow(entry) {
             </td>
             <td class="duration-cell">${durationText}</td>
             <td class="time-cell">${timeRange}</td>
-            <td class="description-cell">${entry.description ? escapeHtml(entry.description) : '-'}</td>
+            <td class="description-cell">${entry.description ? Utils.escapeHtml(entry.description) : '-'}</td>
             <td class="actions-cell">
                 <button class="btn btn-secondary btn-small" onclick="editEntry(${entry.id})" title="Edit entry">✏️</button>
                 <button class="btn btn-danger btn-small" onclick="deleteEntry(${entry.id})" title="Delete entry">🗑️</button>
@@ -250,7 +250,7 @@ function updateTotalTime() {
     const minutes = totalMinutes % 60;
     const totalText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
     
-    const filterText = categoryFilter ? ` (${getCategoryInfo(categoryFilter).name})` : '';
+    const filterText = categoryFilter ? ` (${Utils.getCategoryInfo(categoryFilter, categories).name})` : '';
     document.getElementById('totalTime').textContent = totalText + filterText;
 }
 
@@ -383,7 +383,7 @@ async function handleEditSubmit(event) {
     };
     
     if (!data.task || !data.category || !data.duration || !data.date) {
-        showError('Please fill in all required fields');
+        Utils.showError('Please fill in all required fields');
         return;
     }
     
@@ -410,10 +410,10 @@ async function handleEditSubmit(event) {
         updateTotalTime();
         closeEditModal();
         
-        showSuccess('Time entry updated successfully!');
+        Utils.showSuccess('Time entry updated successfully!');
     } catch (error) {
         console.error('Error updating entry:', error);
-        showError(`Failed to update time entry: ${error.message}`);
+        Utils.showError(`Failed to update time entry: ${error.message}`);
     }
 }
 
@@ -446,135 +446,16 @@ async function deleteEntry(id) {
         renderEntries();
         updateTotalTime();
         
-        showSuccess('Time entry deleted successfully!');
+        Utils.showSuccess('Time entry deleted successfully!');
     } catch (error) {
         console.error('Error deleting entry:', error);
-        showError(`Failed to delete time entry: ${error.message}`);
+        Utils.showError(`Failed to delete time entry: ${error.message}`);
     }
 }
 
 function closeEditModal() {
     document.getElementById('editModal').style.display = 'none';
     document.getElementById('editForm').reset();
-}
-
-// Utility functions
-function getCategoryInfo(categoryName) {
-    const category = categories.find(c => c.name === categoryName);
-    if (category) {
-        return {
-            name: category.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-            class: `category-${category.name.replace(/\s+/g, '-')}`,
-            color: category.color
-        };
-    }
-    
-    // Fallback for unknown categories
-    return {
-        name: categoryName ? categoryName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Other',
-        class: 'category-other',
-        color: '#718096'
-    };
-}
-
-function formatDate(dateString) {
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-}
-
-function formatDateShort(dateString) {
-    const date = new Date(dateString + 'T00:00:00');
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    // Check if it's today
-    if (date.toDateString() === today.toDateString()) {
-        return 'Today';
-    }
-    
-    // Check if it's yesterday
-    if (date.toDateString() === yesterday.toDateString()) {
-        return 'Yesterday';
-    }
-    
-    // For other dates, show short format
-    return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
-    });
-}
-
-function formatTime(timeString) {
-    if (!timeString) return '';
-    // Parse times without timezone conversion (treat as local time)
-    const timeStr = timeString.replace('Z', '').replace('T', ' ');
-    const date = new Date(timeStr);
-    return date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false  // Use 24-hour military time format
-    });
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function showSuccess(message) {
-    const notification = document.createElement('div');
-    notification.className = 'notification success';
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #48bb78;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        z-index: 1001;
-        animation: slideIn 0.3s ease-out;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-function showError(message) {
-    const notification = document.createElement('div');
-    notification.className = 'notification error';
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #e53e3e;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        z-index: 1001;
-        animation: slideIn 0.3s ease-out;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
 }
 
 // Excel Export Functionality
@@ -614,7 +495,7 @@ function exportToExcel() {
         }
         
         if (filteredEntries.length === 0) {
-            showError('No entries to export with current filters');
+            Utils.showError('No entries to export with current filters');
             return;
         }
         
@@ -644,8 +525,8 @@ function exportToExcel() {
             const entryDate = new Date(entry.date + 'T00:00:00');
             const weekday = entryDate.toLocaleDateString('en-US', { weekday: 'long' });
             const hours = (entry.duration / 60).toFixed(2);
-            const startTime = entry.start_time ? formatTime(entry.start_time) : 'Manual';
-            const endTime = entry.end_time ? formatTime(entry.end_time) : 'Manual';
+            const startTime = entry.start_time ? Utils.formatTime(entry.start_time) : 'Manual';
+            const endTime = entry.end_time ? Utils.formatTime(entry.end_time) : 'Manual';
             
             excelData.push([
                 entry.date,
@@ -724,10 +605,10 @@ function exportToExcel() {
         // Save file
         XLSX.writeFile(wb, filename);
         
-        showSuccess(`Excel file exported: ${filename}`);
+        Utils.showSuccess(`Excel file exported: ${filename}`);
         
     } catch (error) {
         console.error('Error exporting to Excel:', error);
-        showError('Failed to export Excel file. Please try again.');
+        Utils.showError('Failed to export Excel file. Please try again.');
     }
 }

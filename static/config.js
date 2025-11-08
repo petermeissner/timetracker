@@ -45,7 +45,7 @@ async function loadCategories() {
         populateTaskCategorySelect();
     } catch (error) {
         console.error('Error loading categories:', error);
-        showError('Failed to load categories');
+        Utils.Utils.showError('Failed to load categories');
     }
 }
 
@@ -70,7 +70,7 @@ function renderCategories() {
                     <div>
                         <div class="config-item-name">
                             <span class="category-color-indicator" style="background-color: ${category.color}"></span>
-                            ${escapeHtml(category.name)}
+                            ${Utils.Utils.escapeHtml(category.name)}
                         </div>
                         <div class="config-item-details">
                             Color: ${category.color}
@@ -120,7 +120,7 @@ async function handleCategorySubmit(event) {
     };
     
     if (!data.name) {
-        showError('Category name is required');
+        Utils.showError('Category name is required');
         return;
     }
     
@@ -142,10 +142,10 @@ async function handleCategorySubmit(event) {
         
         await loadCategories();
         closeCategoryModal();
-        showSuccess(`Category ${categoryId ? 'updated' : 'created'} successfully!`);
+        Utils.showSuccess(`Category ${categoryId ? 'updated' : 'created'} successfully!`);
     } catch (error) {
         console.error('Error saving category:', error);
-        showError('Failed to save category');
+        Utils.showError('Failed to save category');
     }
 }
 
@@ -164,10 +164,10 @@ async function deleteCategory(id) {
         }
         
         await loadCategories();
-        showSuccess('Category deleted successfully!');
+        Utils.showSuccess('Category deleted successfully!');
     } catch (error) {
         console.error('Error deleting category:', error);
-        showError('Failed to delete category');
+        Utils.showError('Failed to delete category');
     }
 }
 
@@ -196,7 +196,7 @@ async function loadTasks() {
         renderTasks();
     } catch (error) {
         console.error('Error loading tasks:', error);
-        showError('Failed to load tasks');
+        Utils.showError('Failed to load tasks');
     }
 }
 
@@ -225,14 +225,14 @@ function renderTasks() {
             <div class="config-item" data-id="${task.id}">
                 <div class="config-item-header">
                     <div>
-                        <div class="config-item-name">${escapeHtml(task.name)}</div>
+                        <div class="config-item-name">${Utils.escapeHtml(task.name)}</div>
                         <div class="config-item-details">
-                            ${task.description ? escapeHtml(task.description) : 'No description'}
+                            ${task.description ? Utils.escapeHtml(task.description) : 'No description'}
                         </div>
                         ${categoryInfo ? `
                             <div class="task-category-info">
                                 <span class="task-category-badge" style="background-color: ${categoryInfo.color}">
-                                    ${escapeHtml(categoryInfo.name)}
+                                    ${Utils.escapeHtml(categoryInfo.name)}
                                 </span>
                             </div>
                         ` : ''}
@@ -254,7 +254,7 @@ function populateTaskCategorySelect() {
     let html = '<option value="">No Category</option>';
     
     categories.forEach(category => {
-        html += `<option value="${category.id}">${escapeHtml(category.name)}</option>`;
+        html += `<option value="${category.id}">${Utils.escapeHtml(category.name)}</option>`;
     });
     
     select.innerHTML = html;
@@ -291,7 +291,7 @@ async function handleTaskSubmit(event) {
     };
     
     if (!data.name) {
-        showError('Task name is required');
+        Utils.showError('Task name is required');
         return;
     }
     
@@ -313,10 +313,10 @@ async function handleTaskSubmit(event) {
         
         await loadTasks();
         closeTaskModal();
-        showSuccess(`Task ${taskId ? 'updated' : 'created'} successfully!`);
+        Utils.showSuccess(`Task ${taskId ? 'updated' : 'created'} successfully!`);
     } catch (error) {
         console.error('Error saving task:', error);
-        showError('Failed to save task');
+        Utils.showError('Failed to save task');
     }
 }
 
@@ -335,10 +335,10 @@ async function deleteTask(id) {
         }
         
         await loadTasks();
-        showSuccess('Task deleted successfully!');
+        Utils.showSuccess('Task deleted successfully!');
     } catch (error) {
         console.error('Error deleting task:', error);
-        showError('Failed to delete task');
+        Utils.showError('Failed to delete task');
     }
 }
 
@@ -347,57 +347,4 @@ function closeTaskModal() {
     document.getElementById('taskForm').reset();
 }
 
-// Utility functions
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function showSuccess(message) {
-    const notification = document.createElement('div');
-    notification.className = 'notification success';
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #48bb78;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        z-index: 1001;
-        animation: slideIn 0.3s ease-out;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-function showError(message) {
-    const notification = document.createElement('div');
-    notification.className = 'notification error';
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #e53e3e;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        z-index: 1001;
-        animation: slideIn 0.3s ease-out;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
-}
+// Utility functions now in Utils - no wrapper functions needed

@@ -83,7 +83,7 @@ async function loadEntries() {
         loadDayEntries(); // Update time slots after entries are loaded
     } catch (error) {
         console.error('Error loading entries:', error);
-        showError('Failed to load time entries');
+        Utils.showError('Failed to load time entries');
     }
 }
 
@@ -96,7 +96,7 @@ function updateCategorySelectors() {
     let categoryOptions = '<option value="">Select a category...</option>';
     
     categories.forEach(category => {
-        categoryOptions += `<option value="${category.name}">${escapeHtml(category.name)}</option>`;
+        categoryOptions += `<option value="${category.name}">${Utils.escapeHtml(category.name)}</option>`;
     });
     
     if (categorySelect) categorySelect.innerHTML = categoryOptions;
@@ -120,9 +120,9 @@ function updatePredefinedTaskSelector() {
     // Add options grouped by category
     Object.keys(tasksByCategory).sort().forEach(categoryName => {
         if (tasksByCategory[categoryName].length > 0) {
-            options += `<optgroup label="${escapeHtml(categoryName)}">`;
+            options += `<optgroup label="${Utils.escapeHtml(categoryName)}">`;
             tasksByCategory[categoryName].forEach(task => {
-                options += `<option value="${task.id}" data-category="${task.category_id || ''}" data-description="${escapeHtml(task.description || '')}">${escapeHtml(task.name)}</option>`;
+                options += `<option value="${task.id}" data-category="${task.category_id || ''}" data-description="${Utils.escapeHtml(task.description || '')}">${Utils.escapeHtml(task.name)}</option>`;
             });
             options += '</optgroup>';
         }
@@ -299,7 +299,7 @@ async function handleFormSubmit(event) {
     }
     
     if (!data.task || !data.category || !data.duration || !data.date) {
-        showError('Please fill in all required fields');
+        Utils.showError('Please fill in all required fields');
         return;
     }
     
@@ -331,10 +331,10 @@ async function handleFormSubmit(event) {
         document.getElementById('date').value = date_selected; // Restore the selected date
         clearSelectedSlots(); // Clear any selected time slots
         
-        showSuccess('Time entry added successfully!');
+        Utils.showSuccess('Time entry added successfully!');
     } catch (error) {
         console.error('Error creating entry:', error);
-        showError(`Failed to create time entry: ${error.message}`);
+        Utils.showError(`Failed to create time entry: ${error.message}`);
     }
 }
 
@@ -349,7 +349,7 @@ async function handleAddDaily() {
     );
     
     if (existingDaily) {
-        showError('Daily entry already exists for this date');
+        Utils.showError('Daily entry already exists for this date');
         return;
     }
     
@@ -385,10 +385,10 @@ async function handleAddDaily() {
         // Refresh time slots since the daily entry was added to the currently selected date
         loadDayEntries();
         
-        showSuccess('Daily entry added successfully!');
+        Utils.showSuccess('Daily entry added successfully!');
     } catch (error) {
         console.error('Error creating daily entry:', error);
-        showError(`Failed to create daily entry: ${error.message}`);
+        Utils.showError(`Failed to create daily entry: ${error.message}`);
     }
 }
 
@@ -422,147 +422,12 @@ async function deleteTimeEntry(entryId, taskName) {
             loadDayEntries();
         }
         
-        showSuccess(`"${taskName}" deleted successfully!`);
+        Utils.showSuccess(`"${taskName}" deleted successfully!`);
     } catch (error) {
         console.error('Error deleting entry:', error);
-        showError(`Failed to delete entry: ${error.message}`);
+        Utils.showError(`Failed to delete entry: ${error.message}`);
     }
 }
-
-// Utility functions
-function getCategoryInfo(categoryName) {
-    const category = categories.find(c => c.name === categoryName);
-    if (category) {
-        return {
-            name: category.name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-            class: `category-${category.name.replace(/\s+/g, '-')}`,
-            color: category.color
-        };
-    }
-    
-    // Fallback for unknown categories
-    return {
-        name: categoryName ? categoryName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Other',
-        class: 'category-other',
-        color: '#718096'
-    };
-}
-
-function formatDate(dateString) {
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-}
-
-function formatTime(timeString) {
-    if (!timeString) return '';
-    const date = new Date(timeString);
-    return date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function showSuccess(message) {
-    // Simple success notification
-    const notification = document.createElement('div');
-    notification.className = 'notification success';
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #48bb78;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        z-index: 1001;
-        animation: slideIn 0.3s ease-out;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-function showError(message) {
-    // Simple error notification
-    const notification = document.createElement('div');
-    notification.className = 'notification error';
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #e53e3e;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        z-index: 1001;
-        animation: slideIn 0.3s ease-out;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
-}
-
-// Add CSS for notifications
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    .date-group {
-        margin-bottom: 30px;
-    }
-    
-    .date-header {
-        color: #4a5568;
-        margin-bottom: 15px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #e2e8f0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .date-total {
-        font-size: 0.9rem;
-        color: #718096;
-        font-weight: normal;
-    }
-    
-    .date-entries {
-        display: grid;
-        gap: 10px;
-    }
-`;
-document.head.appendChild(style);
 
 // Time Slots Functionality
 let selectedTimeSlots = [];
@@ -943,7 +808,7 @@ function updateTimeSlotsWithBookings() {
                 entryElement.dataset.entryId = entry.id;
                 
                 // Get category info for color
-                const categoryInfo = getCategoryInfo(entry.category);
+                const categoryInfo = Utils.getCategoryInfo(entry.category, categories);
                 
                 // Apply category color as border or background
                 entryElement.style.borderLeft = `3px solid ${categoryInfo.color}`;
@@ -971,7 +836,7 @@ function updateTimeSlotsWithBookings() {
             // If there's only one category for this slot, apply the color to the entire slot
             const uniqueCategories = [...new Set(entries.map(entry => entry.category))];
             if (uniqueCategories.length === 1) {
-                const categoryInfo = getCategoryInfo(uniqueCategories[0]);
+                const categoryInfo = Utils.getCategoryInfo(uniqueCategories[0], categories);
                 slot.style.borderLeft = `4px solid ${categoryInfo.color}`;
                 slot.style.backgroundColor = `${categoryInfo.color}10`; // Even more subtle for the whole slot
             }
