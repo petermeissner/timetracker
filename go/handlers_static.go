@@ -34,3 +34,13 @@ func ServeEntriesHtml(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	w.Write(data)
 }
+
+func ServeFavicon(w http.ResponseWriter, r *http.Request) {
+	data, err := staticFiles.ReadFile("static/favicon.ico")
+	if err != nil {
+		http.Error(w, "Favicon not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "image/x-icon")
+	w.Write(data)
+}

@@ -35,5 +35,9 @@ func SetUpRouter() *mux.Router {
 	r.HandleFunc("/", ServeIndexHtml).Methods("GET")
 	r.HandleFunc("/entries", ServeEntriesHtml).Methods("GET")
 	r.HandleFunc("/config", ServeConfigHtml).Methods("GET")
+
+	// Serve favicon
+	r.HandleFunc("/favicon.ico", ServeFavicon).Methods("GET")
+
 	return r
 }
