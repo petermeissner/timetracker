@@ -40,12 +40,7 @@ function setupEventListeners() {
 
 async function loadCategories() {
     try {
-        const response = await fetch('/api/categories');
-        if (!response.ok) {
-            throw new Error('Failed to load categories');
-        }
-        
-        categories = await response.json() || [];
+        categories = await API.categories.getAll() || [];
         updateCategorySelectors();
     } catch (error) {
         console.error('Error loading categories:', error);
@@ -62,12 +57,7 @@ async function loadCategories() {
 async function loadEntries() {
     try {
         console.log('Loading entries...');
-        const response = await fetch('/api/entries');
-        if (!response.ok) {
-            throw new Error('Failed to load entries');
-        }
-        
-        entries = await response.json() || [];
+        entries = await API.entries.getAll() || [];
         console.log('Loaded entries:', entries.length, entries);
         renderEntries();
         updateTotalTime();
@@ -388,19 +378,7 @@ async function handleEditSubmit(event) {
     }
     
     try {
-        const response = await fetch(`/api/entries/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to update entry');
-        }
-        
-        const updatedEntry = await response.json();
+        const updatedEntry = await API.entries.update(id, data);
         const index = entries.findIndex(e => e.id === id);
         if (index !== -1) {
             entries[index] = updatedEntry;
@@ -428,18 +406,7 @@ async function deleteEntry(id) {
     console.log('Attempting to delete entry with id:', id);
     
     try {
-        const response = await fetch(`/api/entries/${id}`, {
-            method: 'DELETE'
-        });
-        
-        console.log('Delete response status:', response.status);
-        console.log('Delete response ok:', response.ok);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Delete failed with response:', errorText);
-            throw new Error(`Failed to delete entry: ${response.status} ${errorText}`);
-        }
+        await API.entries.delete(id);
         
         console.log('Delete successful, updating UI');
         entries = entries.filter(e => e.id !== id);

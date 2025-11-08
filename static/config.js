@@ -35,17 +35,12 @@ function setupEventListeners() {
 // Category functions
 async function loadCategories() {
     try {
-        const response = await fetch('/api/categories');
-        if (!response.ok) {
-            throw new Error('Failed to load categories');
-        }
-        
-        categories = await response.json() || [];
+        categories = await API.categories.getAll() || [];
         renderCategories();
         populateTaskCategorySelect();
     } catch (error) {
         console.error('Error loading categories:', error);
-        Utils.Utils.showError('Failed to load categories');
+        Utils.showError('Failed to load categories');
     }
 }
 
@@ -70,7 +65,7 @@ function renderCategories() {
                     <div>
                         <div class="config-item-name">
                             <span class="category-color-indicator" style="background-color: ${category.color}"></span>
-                            ${Utils.Utils.escapeHtml(category.name)}
+                            ${Utils.escapeHtml(category.name)}
                         </div>
                         <div class="config-item-details">
                             Color: ${category.color}
@@ -125,20 +120,7 @@ async function handleCategorySubmit(event) {
     }
     
     try {
-        const url = categoryId ? `/api/categories/${categoryId}` : '/api/categories';
-        const method = categoryId ? 'PUT' : 'POST';
-        
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to save category');
-        }
+        const result = categoryId ? await API.categories.update(categoryId, data) : await API.categories.create(data);
         
         await loadCategories();
         closeCategoryModal();
@@ -155,13 +137,7 @@ async function deleteCategory(id) {
     }
     
     try {
-        const response = await fetch(`/api/categories/${id}`, {
-            method: 'DELETE'
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to delete category');
-        }
+        await API.categories.delete(id);
         
         await loadCategories();
         Utils.showSuccess('Category deleted successfully!');
@@ -187,12 +163,7 @@ function updateColorPreview() {
 // Task functions
 async function loadTasks() {
     try {
-        const response = await fetch('/api/tasks');
-        if (!response.ok) {
-            throw new Error('Failed to load tasks');
-        }
-        
-        tasks = await response.json() || [];
+        tasks = await API.tasks.getAll() || [];
         renderTasks();
     } catch (error) {
         console.error('Error loading tasks:', error);
@@ -296,20 +267,7 @@ async function handleTaskSubmit(event) {
     }
     
     try {
-        const url = taskId ? `/api/tasks/${taskId}` : '/api/tasks';
-        const method = taskId ? 'PUT' : 'POST';
-        
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to save task');
-        }
+        const result = taskId ? await API.tasks.update(taskId, data) : await API.tasks.create(data);
         
         await loadTasks();
         closeTaskModal();
@@ -326,13 +284,7 @@ async function deleteTask(id) {
     }
     
     try {
-        const response = await fetch(`/api/tasks/${id}`, {
-            method: 'DELETE'
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to delete task');
-        }
+        await API.tasks.delete(id);
         
         await loadTasks();
         Utils.showSuccess('Task deleted successfully!');

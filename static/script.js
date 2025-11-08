@@ -34,12 +34,7 @@ function setupEventListeners() {
 
 async function loadCategories() {
     try {
-        const response = await fetch('/api/categories');
-        if (!response.ok) {
-            throw new Error('Failed to load categories');
-        }
-        
-        categories = await response.json() || [];
+        categories = await API.categories.getAll() || [];
         updateCategorySelectors();
     } catch (error) {
         console.error('Error loading categories:', error);
@@ -55,12 +50,7 @@ async function loadCategories() {
 
 async function loadPredefinedTasks() {
     try {
-        const response = await fetch('/api/tasks');
-        if (!response.ok) {
-            throw new Error('Failed to load tasks');
-        }
-        
-        predefinedTasks = await response.json() || [];
+        predefinedTasks = await API.tasks.getAll() || [];
         updatePredefinedTaskSelector();
     } catch (error) {
         console.error('Error loading predefined tasks:', error);
@@ -72,12 +62,7 @@ async function loadPredefinedTasks() {
 async function loadEntries() {
     try {
         console.log('Loading entries...');
-        const response = await fetch('/api/entries');
-        if (!response.ok) {
-            throw new Error('Failed to load entries');
-        }
-        
-        entries = await response.json() || [];
+        entries = await API.entries.getAll() || [];
         console.log('Loaded entries:', entries.length, entries);
         updateTodayStats();
         loadDayEntries(); // Update time slots after entries are loaded
@@ -304,20 +289,7 @@ async function handleFormSubmit(event) {
     }
     
     try {
-        const response = await fetch('/api/entries', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server error (${response.status}): ${errorText}`);
-        }
-        
-        const newEntry = await response.json();
+        const newEntry = await API.entries.create(data);
         entries.unshift(newEntry);
         updateTodayStats();
         
@@ -365,20 +337,7 @@ async function handleAddDaily() {
     };
     
     try {
-        const response = await fetch('/api/entries', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(dailyData)
-        });
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server error (${response.status}): ${errorText}`);
-        }
-        
-        const newEntry = await response.json();
+        const newEntry = await API.entries.create(dailyData);
         entries.unshift(newEntry);
         updateTodayStats();
         
@@ -398,14 +357,7 @@ async function deleteTimeEntry(entryId, taskName) {
     }
     
     try {
-        const response = await fetch(`/api/entries/${entryId}`, {
-            method: 'DELETE'
-        });
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server error (${response.status}): ${errorText}`);
-        }
+        await API.entries.delete(entryId);
         
         // Find the entry before removing it to check its date
         const deletedEntry = entries.find(entry => entry.id === entryId);
