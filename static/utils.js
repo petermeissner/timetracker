@@ -42,6 +42,23 @@ const Utils = {
         });
     },
 
+    /**
+     * Entry Data Extraction - Calculate date and duration from start_time/end_time
+     */
+    
+    getEntryDate(entry) {
+        if (!entry.start_time) return null;
+        const startTime = new Date(entry.start_time.replace('Z', '').replace('T', ' '));
+        return startTime.toISOString().split('T')[0];
+    },
+
+    getEntryDuration(entry) {
+        if (!entry.start_time || !entry.end_time) return 0;
+        const startTime = new Date(entry.start_time.replace('Z', '').replace('T', ' '));
+        const endTime = new Date(entry.end_time.replace('Z', '').replace('T', ' '));
+        return Math.round((endTime - startTime) / (1000 * 60)); // Convert to minutes
+    },
+
     formatTime(timeString) {
         if (!timeString) return '';
         // Parse times without timezone conversion (treat as local time)

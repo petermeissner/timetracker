@@ -169,8 +169,8 @@ function updateTodayStats() {
         const dateStr = date.toISOString().split('T')[0];
         
         // Calculate total for this day
-        const dayEntries = entries.filter(entry => entry.date === dateStr);
-        const dayMinutes = dayEntries.reduce((sum, entry) => sum + entry.duration, 0);
+        const dayEntries = entries.filter(entry => Utils.getEntryDate(entry) === dateStr);
+        const dayMinutes = dayEntries.reduce((sum, entry) => sum + Utils.getEntryDuration(entry), 0);
         
         // Format weekday and date
         const weekdayName = date.toLocaleDateString('en-US', { weekday: 'long' });
@@ -272,18 +272,19 @@ async function handleFormSubmit(event) {
     const data = {
         task: formData.get('task').trim(),
         description: formData.get('description').trim(),
-        category: formData.get('category'),
-        duration: parseInt(formData.get('duration')),
-        date: date
+        category: formData.get('category')
     };
     
-    // Add start_time and end_time if provided
-    if (startTime && endTime) {
-        data.start_time = `${date}T${startTime}:00Z`;  // Send full ISO timestamp
-        data.end_time = `${date}T${endTime}:00Z`;      // Send full ISO timestamp
+    // Require start_time and end_time - no more duration/date only entries
+    if (!startTime || !endTime) {
+        Utils.showError('Please select both start and end times');
+        return;
     }
     
-    if (!data.task || !data.category || !data.duration || !data.date) {
+    data.start_time = `${date}T${startTime}:00Z`;  // Send full ISO timestamp
+    data.end_time = `${date}T${endTime}:00Z`;      // Send full ISO timestamp
+    
+    if (!data.task || !data.category || !data.start_time || !data.end_time) {
         Utils.showError('Please fill in all required fields');
         return;
     }
@@ -294,7 +295,7 @@ async function handleFormSubmit(event) {
         updateTodayStats();
         
         // Refresh time slots for the currently selected date if the entry was added to it
-        if (newEntry.date === date_selected) {
+        if (Utils.getEntryDate(newEntry) === date_selected) {
             loadDayEntries(); // Refresh time slots to show the new booking
         }
         
@@ -315,7 +316,7 @@ async function handleAddDaily() {
     
     // Check if a "Daily" entry already exists for this date
     const existingDaily = entries.find(entry => 
-        entry.date === date_selected && 
+        Utils.getEntryDate(entry) === date_selected && 
         entry.task.toLowerCase() === 'daily' && 
         entry.category === 'project support'
     );
@@ -330,8 +331,6 @@ async function handleAddDaily() {
         task: 'Daily',
         description: '',
         category: 'project support',
-        duration: 30, // 30 minutes
-        date: date_selected,
         start_time: `${date_selected}T09:00:00Z`,
         end_time: `${date_selected}T09:30:00Z`
     };
@@ -370,7 +369,7 @@ async function deleteTimeEntry(entryId, taskName) {
         
         // Update stats and refresh time slots if the deleted entry was on the currently selected date
         updateTodayStats();
-        if (deletedEntry && deletedEntry.date === date_selected) {
+        if (deletedEntry && Utils.getEntryDate(deletedEntry) === date_selected) {
             loadDayEntries();
         }
         
@@ -681,7 +680,7 @@ function updateSelectedDateDisplay() {
 function loadDayEntries() {
     if (!date_selected) return;
     
-    dayEntries = entries.filter(entry => entry.date === date_selected);
+    dayEntries = entries.filter(entry => Utils.getEntryDate(entry) === date_selected);
     
     updateTimeSlotsWithBookings();
     

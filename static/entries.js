@@ -101,7 +101,9 @@ function renderEntries() {
     // Date range filter
     if (dateFromFilter || dateToFilter) {
         filteredEntries = filteredEntries.filter(entry => {
-            const entryDate = new Date(entry.date);
+            const entryDateStr = Utils.getEntryDate(entry);
+            if (!entryDateStr) return false;
+            const entryDate = new Date(entryDateStr);
             let matchesFrom = true;
             let matchesTo = true;
             
@@ -182,8 +184,9 @@ function renderEntries() {
 }
 
 function renderTableRow(entry) {
-    const hours = Math.floor(entry.duration / 60);
-    const minutes = entry.duration % 60;
+    const duration = Utils.getEntryDuration(entry);
+    const hours = Math.floor(duration / 60);
+    const minutes = duration % 60;
     const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
     
     // Get category display name and color
@@ -196,7 +199,7 @@ function renderTableRow(entry) {
     
     return `
         <tr data-id="${entry.id}">
-            <td class="date-cell">${Utils.formatDateShort(entry.date)}</td>
+            <td class="date-cell">${Utils.formatDateShort(Utils.getEntryDate(entry))}</td>
             <td class="task-cell">${Utils.escapeHtml(entry.task)}</td>
             <td class="category-cell">
                 <span class="category-badge" style="background-color: ${categoryInfo.color}; color: white;">
@@ -229,12 +232,12 @@ function updateTotalTime() {
     const today = new Date().toISOString().split('T')[0];
     const categoryFilter = document.getElementById('categoryFilter').value;
     
-    let todayEntries = entries.filter(entry => entry.date === today);
+    let todayEntries = entries.filter(entry => Utils.getEntryDate(entry) === today);
     if (categoryFilter) {
         todayEntries = todayEntries.filter(entry => entry.category === categoryFilter);
     }
     
-    const totalMinutes = todayEntries.reduce((sum, entry) => sum + entry.duration, 0);
+    const totalMinutes = todayEntries.reduce((sum, entry) => sum + Utils.getEntryDuration(entry), 0);
     
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
@@ -268,8 +271,8 @@ function applySortToEntries(entries) {
         
         switch (currentSort.column) {
             case 'date':
-                aVal = new Date(a.date);
-                bVal = new Date(b.date);
+                aVal = new Date(Utils.getEntryDate(a) || '1970-01-01');
+                bVal = new Date(Utils.getEntryDate(b) || '1970-01-01');
                 break;
             case 'task':
                 aVal = a.task.toLowerCase();
@@ -280,8 +283,8 @@ function applySortToEntries(entries) {
                 bVal = (b.category || 'other').toLowerCase();
                 break;
             case 'duration':
-                aVal = a.duration;
-                bVal = b.duration;
+                aVal = Utils.getEntryDuration(a);
+                bVal = Utils.getEntryDuration(b);
                 break;
             case 'time':
                 // Sort by start_time if available, otherwise put manual entries at end
@@ -352,8 +355,8 @@ async function editEntry(id) {
     document.getElementById('editTask').value = entry.task;
     document.getElementById('editCategory').value = entry.category || 'other';
     document.getElementById('editDescription').value = entry.description || '';
-    document.getElementById('editDuration').value = entry.duration;
-    document.getElementById('editDate').value = entry.date;
+    document.getElementById('editDuration').value = Utils.getEntryDuration(entry);
+    document.getElementById('editDate').value = Utils.getEntryDate(entry);
     
     // Show modal
     document.getElementById('editModal').style.display = 'block';
@@ -443,7 +446,9 @@ function exportToExcel() {
         // Apply date range filter
         if (dateFromFilter || dateToFilter) {
             filteredEntries = filteredEntries.filter(entry => {
-                const entryDate = new Date(entry.date);
+                const entryDateStr = Utils.getEntryDate(entry);
+                if (!entryDateStr) return false;
+                const entryDate = new Date(entryDateStr);
                 let matchesFrom = true;
                 let matchesTo = true;
                 
@@ -468,7 +473,7 @@ function exportToExcel() {
         
         // Sort entries by date (newest first)
         const sortedEntries = filteredEntries.sort((a, b) => {
-            return new Date(b.date) - new Date(a.date);
+            return new Date(Utils.getEntryDate(b) || '1970-01-01') - new Date(Utils.getEntryDate(a) || '1970-01-01');
         });
         
         // Prepare data for Excel
@@ -489,19 +494,21 @@ function exportToExcel() {
         
         // Add data rows
         sortedEntries.forEach(entry => {
-            const entryDate = new Date(entry.date + 'T00:00:00');
+            const entryDateStr = Utils.getEntryDate(entry);
+            const entryDate = new Date(entryDateStr + 'T00:00:00');
             const weekday = entryDate.toLocaleDateString('en-US', { weekday: 'long' });
-            const hours = (entry.duration / 60).toFixed(2);
+            const duration = Utils.getEntryDuration(entry);
+            const hours = (duration / 60).toFixed(2);
             const startTime = entry.start_time ? Utils.formatTime(entry.start_time) : 'Manual';
             const endTime = entry.end_time ? Utils.formatTime(entry.end_time) : 'Manual';
             
             excelData.push([
-                entry.date,
+                entryDateStr,
                 weekday,
                 entry.task,
                 entry.category || 'Other',
                 entry.description || '',
-                entry.duration,
+                duration,
                 hours,
                 startTime,
                 endTime
@@ -509,7 +516,7 @@ function exportToExcel() {
         });
         
         // Calculate totals
-        const totalMinutes = sortedEntries.reduce((sum, entry) => sum + entry.duration, 0);
+        const totalMinutes = sortedEntries.reduce((sum, entry) => sum + Utils.getEntryDuration(entry), 0);
         const totalHours = (totalMinutes / 60).toFixed(2);
         
         // Add summary rows
