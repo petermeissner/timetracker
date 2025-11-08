@@ -4,6 +4,7 @@ let editingId = null;
 let categories = [];
 let predefinedTasks = [];
 let date_selected = null; // Track the currently selected date
+let editingEntryId = null; // Track if we're editing an existing entry
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -30,6 +31,9 @@ function setupEventListeners() {
     
     // Add Daily button
     document.getElementById('addDailyBtn').addEventListener('click', handleAddDaily);
+    
+    // Cancel Edit button
+    document.getElementById('cancelEdit').addEventListener('click', cancelEdit);
 }
 
 async function loadCategories() {
@@ -290,12 +294,40 @@ async function handleFormSubmit(event) {
     }
     
     try {
-        const newEntry = await API.entries.create(data);
-        entries.unshift(newEntry);
+        let resultEntry;
+        
+        if (editingEntryId) {
+            // Update existing entry
+            resultEntry = await API.entries.update(editingEntryId, data);
+            
+            // Find and replace the entry in the local array
+            const entryIndex = entries.findIndex(entry => entry.id === editingEntryId);
+            if (entryIndex !== -1) {
+                entries[entryIndex] = resultEntry;
+            }
+            
+            Utils.showSuccess('Entry updated successfully!');
+            
+            // Reset editing state
+            editingEntryId = null;
+            const submitButton = document.querySelector('button[type="submit"][form="timeEntryForm"]');
+            const cancelButton = document.getElementById('cancelEdit');
+            const originalText = submitButton.dataset.originalText || 'Add Entry';
+            submitButton.textContent = originalText;
+            cancelButton.textContent = 'Discard Changes';
+            cancelButton.style.display = 'none';
+            
+        } else {
+            // Create new entry
+            resultEntry = await API.entries.create(data);
+            entries.unshift(resultEntry);
+            Utils.showSuccess('Time entry added successfully!');
+        }
+        
         updateTodayStats();
         
         // Refresh time slots for the currently selected date if the entry was added to it
-        if (Utils.getEntryDate(newEntry) === date_selected) {
+        if (Utils.getEntryDate(resultEntry) === date_selected) {
             loadDayEntries(); // Refresh time slots to show the new booking
         }
         
@@ -304,10 +336,9 @@ async function handleFormSubmit(event) {
         document.getElementById('date').value = date_selected; // Restore the selected date
         clearSelectedSlots(); // Clear any selected time slots
         
-        Utils.showSuccess('Time entry added successfully!');
     } catch (error) {
-        console.error('Error creating entry:', error);
-        Utils.showError(`Failed to create time entry: ${error.message}`);
+        console.error('Error saving entry:', error);
+        Utils.showError(`Failed to save time entry: ${error.message}`);
     }
 }
 
@@ -378,6 +409,91 @@ async function deleteTimeEntry(entryId, taskName) {
         console.error('Error deleting entry:', error);
         Utils.showError(`Failed to delete entry: ${error.message}`);
     }
+}
+
+function loadEntryIntoForm(entryId) {
+    const entry = entries.find(e => e.id === entryId);
+    if (!entry) {
+        console.error('Entry not found:', entryId);
+        return;
+    }
+    
+    // Set editing mode
+    editingEntryId = entryId;
+    
+    // Extract start and end times
+    if (!entry.start_time || !entry.end_time) {
+        Utils.showError('Entry missing start or end time');
+        return;
+    }
+    
+    // Parse the times (removing timezone for local display)
+    const startTime = new Date(entry.start_time.replace('Z', '').replace('T', ' '));
+    const endTime = new Date(entry.end_time.replace('Z', '').replace('T', ' '));
+    
+    // Fill form fields
+    document.getElementById('task').value = entry.task;
+    document.getElementById('category').value = entry.category;
+    document.getElementById('description').value = entry.description || '';
+    document.getElementById('startTime').value = startTime.toTimeString().slice(0, 5);
+    document.getElementById('endTime').value = endTime.toTimeString().slice(0, 5);
+    
+    // Calculate and set duration
+    const duration = Utils.getEntryDuration(entry);
+    document.getElementById('duration').value = duration;
+    
+    // Set date to the entry's date
+    const entryDate = Utils.getEntryDate(entry);
+    document.getElementById('date').value = entryDate;
+    date_selected = entryDate;
+    
+    // Update UI to show we're editing
+    const submitButton = document.querySelector('button[type="submit"][form="timeEntryForm"]');
+    const cancelButton = document.getElementById('cancelEdit');
+    
+    // Store original text if not already stored
+    if (!submitButton.dataset.originalText) {
+        submitButton.dataset.originalText = submitButton.textContent;
+    }
+    submitButton.textContent = 'Save Changes';
+    cancelButton.textContent = 'Discard Changes';
+    
+    // Show cancel button
+    cancelButton.style.display = 'inline-block';
+    
+    // Update visual selection in time slots
+    updateSlotSelectionFromTimes(
+        startTime.toTimeString().slice(0, 5),
+        endTime.toTimeString().slice(0, 5)
+    );
+    
+    // Show success message
+    Utils.showSuccess(`Loaded "${entry.task}" for editing`);
+    
+    // Scroll to form
+    document.getElementById('timeEntryForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelEdit() {
+    editingEntryId = null;
+    
+    // Reset form
+    document.getElementById('timeEntryForm').reset();
+    document.getElementById('date').value = date_selected;
+    document.getElementById('duration').value = '60';
+    
+    // Reset button text and hide cancel button
+    const submitButton = document.querySelector('button[type="submit"][form="timeEntryForm"]');
+    const cancelButton = document.getElementById('cancelEdit');
+    const originalText = submitButton.dataset.originalText || 'Add Entry';
+    submitButton.textContent = originalText;
+    cancelButton.textContent = 'Discard Changes';
+    cancelButton.style.display = 'none';
+    
+    // Clear selected slots
+    clearSelectedSlots();
+    
+    Utils.showSuccess('Edit cancelled');
 }
 
 // Time Slots Functionality
@@ -545,6 +661,9 @@ function clearSelectedSlots() {
 
 function updateTimeInputsFromSelection() {
     if (selectedTimeSlots.length === 0) return;
+    
+    // Reset editing state when selecting empty slots
+    cancelEdit();
     
     // Sort selected slots by time
     const sortedSlots = selectedTimeSlots.sort((a, b) => {
@@ -768,7 +887,14 @@ function updateTimeSlotsWithBookings() {
                 const taskElement = document.createElement('span');
                 taskElement.className = 'time-slot-task';
                 taskElement.textContent = entry.task.length > 35 ? entry.task.substring(0, 35) + '...' : entry.task;
-                taskElement.title = `${entry.task} (${entry.category})${entry.description ? '\n' + entry.description : ''}`;
+                taskElement.title = `Click to edit: ${entry.task} (${entry.category})${entry.description ? '\n' + entry.description : ''}`;
+                taskElement.style.cursor = 'pointer';
+                
+                // Add click handler to load entry for editing
+                taskElement.onclick = (e) => {
+                    e.stopPropagation();
+                    loadEntryIntoForm(entry.id);
+                };
                 
                 const deleteButton = document.createElement('button');
                 deleteButton.className = 'time-slot-delete';
