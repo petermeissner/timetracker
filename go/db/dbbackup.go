@@ -1,4 +1,4 @@
-package timesheet
+package db
 
 import (
 	"database/sql"

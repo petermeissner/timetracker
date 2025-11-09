@@ -1,10 +1,12 @@
-package timesheet
+package handler
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
+	pkgglobal "timesheet/go/global"
+	pkgmodel "timesheet/go/model"
 
 	"github.com/gorilla/mux"
 )
@@ -13,16 +15,16 @@ import (
 func GetCategories(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	rows, err := db.Query("SELECT id, name, color FROM categories ORDER BY name")
+	rows, err := pkgglobal.Db.Query("SELECT id, name, color FROM categories ORDER BY name")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	var categories []Category
+	var categories []pkgmodel.Category
 	for rows.Next() {
-		var category Category
+		var category pkgmodel.Category
 		err := rows.Scan(&category.ID, &category.Name, &category.Color)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -37,7 +39,7 @@ func GetCategories(w http.ResponseWriter, r *http.Request) {
 func CreateCategory(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	var req CategoryRequest
+	var req pkgmodel.CategoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -52,7 +54,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 		req.Color = "#718096" // Default color
 	}
 
-	result, err := db.Exec("INSERT INTO categories (name, color) VALUES (?, ?)", req.Name, req.Color)
+	result, err := pkgglobal.Db.Exec("INSERT INTO categories (name, color) VALUES (?, ?)", req.Name, req.Color)
 	if err != nil {
 		log.Printf("ERROR: Failed to insert category - Name: %s, Color: %s - Error: %v", req.Name, req.Color, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -61,7 +63,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := result.LastInsertId()
 	log.Printf("INSERT: Created category ID %d - Name: %s, Color: %s", id, req.Name, req.Color)
-	category := Category{
+	category := pkgmodel.Category{
 		ID:    int(id),
 		Name:  req.Name,
 		Color: req.Color,
@@ -80,7 +82,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req CategoryRequest
+	var req pkgmodel.CategoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -95,7 +97,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 		req.Color = "#718096" // Default color
 	}
 
-	_, err = db.Exec("UPDATE categories SET name = ?, color = ? WHERE id = ?", req.Name, req.Color, id)
+	_, err = pkgglobal.Db.Exec("UPDATE categories SET name = ?, color = ? WHERE id = ?", req.Name, req.Color, id)
 	if err != nil {
 		log.Printf("ERROR: Failed to update category ID %d - Name: %s, Color: %s - Error: %v", id, req.Name, req.Color, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -104,7 +106,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("UPDATE: Modified category ID %d - Name: %s, Color: %s", id, req.Name, req.Color)
 
-	category := Category{
+	category := pkgmodel.Category{
 		ID:    id,
 		Name:  req.Name,
 		Color: req.Color,
@@ -123,7 +125,7 @@ func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 
 	// Get category details before deletion for logging
 	var name, color string
-	err = db.QueryRow("SELECT name, color FROM categories WHERE id = ?", id).Scan(&name, &color)
+	err = pkgglobal.Db.QueryRow("SELECT name, color FROM categories WHERE id = ?", id).Scan(&name, &color)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			log.Printf("WARNING: Attempted to delete non-existent category ID %d", id)
@@ -135,7 +137,7 @@ func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM categories WHERE id = ?", id)
+	_, err = pkgglobal.Db.Exec("DELETE FROM categories WHERE id = ?", id)
 	if err != nil {
 		log.Printf("ERROR: Failed to delete category ID %d - Error: %v", id, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

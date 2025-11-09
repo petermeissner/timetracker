@@ -1,12 +1,13 @@
-package timesheet
+package handler
 
 import (
 	"net/http"
+	pkgglobal "timesheet/go/global"
 )
 
 // Static file handlers
 func ServeIndexHtml(w http.ResponseWriter, r *http.Request) {
-	data, err := staticFiles.ReadFile("static/index.html")
+	data, err := pkgglobal.StaticFiles.ReadFile("static/index.html")
 	if err != nil {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
@@ -16,7 +17,7 @@ func ServeIndexHtml(w http.ResponseWriter, r *http.Request) {
 }
 
 func ServeConfigHtml(w http.ResponseWriter, r *http.Request) {
-	data, err := staticFiles.ReadFile("static/config.html")
+	data, err := pkgglobal.StaticFiles.ReadFile("static/config.html")
 	if err != nil {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
@@ -26,7 +27,7 @@ func ServeConfigHtml(w http.ResponseWriter, r *http.Request) {
 }
 
 func ServeEntriesHtml(w http.ResponseWriter, r *http.Request) {
-	data, err := staticFiles.ReadFile("static/entries.html")
+	data, err := pkgglobal.StaticFiles.ReadFile("static/entries.html")
 	if err != nil {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
@@ -36,7 +37,7 @@ func ServeEntriesHtml(w http.ResponseWriter, r *http.Request) {
 }
 
 func ServeFavicon(w http.ResponseWriter, r *http.Request) {
-	data, err := staticFiles.ReadFile("static/favicon.ico")
+	data, err := pkgglobal.StaticFiles.ReadFile("static/favicon.ico")
 	if err != nil {
 		http.Error(w, "Favicon not found", http.StatusNotFound)
 		return

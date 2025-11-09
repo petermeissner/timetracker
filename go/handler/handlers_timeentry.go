@@ -1,4 +1,4 @@
-package timesheet
+package handler
 
 import (
 	"database/sql"
@@ -8,6 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	pkgglobal "timesheet/go/global"
+	pkgmodel "timesheet/go/model"
+
 	"github.com/gorilla/mux"
 )
 
@@ -15,7 +18,7 @@ import (
 func GetTimeEntries(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	rows, err := db.Query(`
+	rows, err := pkgglobal.Db.Query(`
 		SELECT id, task, description, category, start_time, end_time 
 		FROM time_entries 
 		ORDER BY start_time DESC, id DESC
@@ -26,9 +29,9 @@ func GetTimeEntries(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var entries []TimeEntry
+	var entries []pkgmodel.TimeEntry
 	for rows.Next() {
-		var entry TimeEntry
+		var entry pkgmodel.TimeEntry
 		var startTime, endTime sql.NullString
 
 		err := rows.Scan(&entry.ID, &entry.Task, &entry.Description, &entry.Category,
@@ -64,7 +67,7 @@ func GetTimeEntries(w http.ResponseWriter, r *http.Request) {
 func CreateTimeEntry(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	var req TimeEntryRequest
+	var req pkgmodel.TimeEntryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -78,7 +81,7 @@ func CreateTimeEntry(w http.ResponseWriter, r *http.Request) {
 
 	// Validate category exists in database
 	var categoryExists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE name = ?)", req.Category).Scan(&categoryExists)
+	err := pkgglobal.Db.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE name = ?)", req.Category).Scan(&categoryExists)
 	if err != nil {
 		http.Error(w, "Database error while validating category", http.StatusInternalServerError)
 		return
@@ -113,7 +116,7 @@ func CreateTimeEntry(w http.ResponseWriter, r *http.Request) {
 	// Get current date for compatibility with existing database schema
 	currentDate := time.Now().Format("2006-01-02")
 
-	result, err := db.Exec(`
+	result, err := pkgglobal.Db.Exec(`
 		INSERT INTO time_entries (task, description, category, start_time, end_time, duration, date)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`, req.Task, req.Description, req.Category, startTime.Format(time.RFC3339),
@@ -130,7 +133,7 @@ func CreateTimeEntry(w http.ResponseWriter, r *http.Request) {
 	log.Printf("INSERT: Created time entry ID %d - Task: %s, Category: %s, Duration: %d min, Start: %s, End: %s",
 		id, req.Task, req.Category, duration, startTime.Format("2006-01-02 15:04"), endTime.Format("2006-01-02 15:04"))
 
-	entry := TimeEntry{
+	entry := pkgmodel.TimeEntry{
 		ID:          int(id),
 		Task:        req.Task,
 		Description: req.Description,
@@ -152,7 +155,7 @@ func UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req TimeEntryRequest
+	var req pkgmodel.TimeEntryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -166,7 +169,7 @@ func UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
 
 	// Validate category exists in database
 	var categoryExists bool
-	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE name = ?)", req.Category).Scan(&categoryExists)
+	err = pkgglobal.Db.QueryRow("SELECT EXISTS(SELECT 1 FROM categories WHERE name = ?)", req.Category).Scan(&categoryExists)
 	if err != nil {
 		http.Error(w, "Database error while validating category", http.StatusInternalServerError)
 		return
@@ -201,7 +204,7 @@ func UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
 	// Get current date for compatibility with existing database schema
 	currentDate := time.Now().Format("2006-01-02")
 
-	_, err = db.Exec(`
+	_, err = pkgglobal.Db.Exec(`
 		UPDATE time_entries 
 		SET task = ?, description = ?, category = ?, start_time = ?, end_time = ?, duration = ?, date = ?
 		WHERE id = ?
@@ -218,7 +221,7 @@ func UpdateTimeEntry(w http.ResponseWriter, r *http.Request) {
 	log.Printf("UPDATE: Modified time entry ID %d - Task: %s, Category: %s, Duration: %d min, Start: %s, End: %s",
 		id, req.Task, req.Category, duration, startTime.Format("2006-01-02 15:04"), endTime.Format("2006-01-02 15:04"))
 
-	entry := TimeEntry{
+	entry := pkgmodel.TimeEntry{
 		ID:          id,
 		Task:        req.Task,
 		Description: req.Description,
@@ -241,7 +244,7 @@ func DeleteTimeEntry(w http.ResponseWriter, r *http.Request) {
 	// Get entry details before deletion for logging
 	var task, category string
 	var startTime, endTime sql.NullString
-	err = db.QueryRow("SELECT task, category, start_time, end_time FROM time_entries WHERE id = ?", id).
+	err = pkgglobal.Db.QueryRow("SELECT task, category, start_time, end_time FROM time_entries WHERE id = ?", id).
 		Scan(&task, &category, &startTime, &endTime)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -254,7 +257,7 @@ func DeleteTimeEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM time_entries WHERE id = ?", id)
+	_, err = pkgglobal.Db.Exec("DELETE FROM time_entries WHERE id = ?", id)
 	if err != nil {
 		log.Printf("ERROR: Failed to delete time entry ID %d - Error: %v", id, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

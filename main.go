@@ -10,27 +10,23 @@ import (
 	"os"
 
 	timesheet "timesheet/go"
+	pkgdb "timesheet/go/db"
+	tserverconfig "timesheet/go/serverconfig"
+
+	pkgglobal "timesheet/go/global"
 
 	_ "modernc.org/sqlite"
 )
 
 //go:embed static/*
-var staticFiles embed.FS
+var mainStaticFiles embed.FS
 
-var db *sql.DB
-
-// getEnvOrDefault returns the value of an environment variable or a default value if not set
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
+var mainDb *sql.DB
 
 func main() {
 	// Define command-line flags with environment variable fallbacks
-	var dbPath = flag.String("db", getEnvOrDefault("DB_PATH", "./timesheet.db"), "Path to the SQLite database file")
-	var port = flag.String("port", getEnvOrDefault("PORT", "8080"), "Port to run the server on")
+	var dbPath = flag.String("db", tserverconfig.GetEnvOrDefault("DB_PATH", "./timesheet.db"), "Path to the SQLite database file")
+	var port = flag.String("port", tserverconfig.GetEnvOrDefault("PORT", "8080"), "Port to run the server on")
 	var help = flag.Bool("help", false, "Show usage information")
 
 	// Parse command-line flags
@@ -58,23 +54,23 @@ func main() {
 	var err error
 
 	// Check database version and create backup if needed
-	if err := timesheet.CheckAndBackupDatabase(*dbPath); err != nil {
+	if err := pkgdb.CheckAndBackupDatabase(*dbPath); err != nil {
 		log.Fatalf("Database backup failed: %v", err)
 	}
 
 	// connect to the database
-	db, err = sql.Open("sqlite", *dbPath)
+	mainDb, err = sql.Open("sqlite", *dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Set shared resources for the timesheet package
-	timesheet.SetStaticFiles(staticFiles)
-	timesheet.SetDB(db)
+	pkgglobal.SetStaticFiles(mainStaticFiles)
+	pkgglobal.SetDB(mainDb)
 
 	// Initialize database
-	timesheet.InitDB()
-	defer db.Close()
+	pkgdb.InitDB()
+	defer mainDb.Close()
 
 	// Setup routes
 	router := timesheet.SetUpRouter()

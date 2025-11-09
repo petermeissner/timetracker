@@ -1,4 +1,4 @@
-package timesheet
+package model
 
 import "time"
 

@@ -1,4 +1,4 @@
-package timesheet
+package global
 
 import (
 	"database/sql"
@@ -6,15 +6,15 @@ import (
 )
 
 // Package-level variables that will be set by main
-var db *sql.DB
-var staticFiles embed.FS
+var Db *sql.DB
+var StaticFiles embed.FS
 
 // SetDB sets the database connection for the handlers to use
 func SetDB(database *sql.DB) {
-	db = database
+	Db = database
 }
 
 // SetStaticFiles sets the embedded static files for the handlers to use
 func SetStaticFiles(files embed.FS) {
-	staticFiles = files
+	StaticFiles = files
 }

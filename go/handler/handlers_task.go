@@ -1,4 +1,4 @@
-package timesheet
+package handler
 
 import (
 	"database/sql"
@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"strconv"
 
+	pkgglobal "timesheet/go/global"
+	pkgmodel "timesheet/go/model"
+
 	"github.com/gorilla/mux"
 )
 
@@ -14,16 +17,16 @@ import (
 func GetTasks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	rows, err := db.Query("SELECT id, name, category_id, description FROM tasks ORDER BY name")
+	rows, err := pkgglobal.Db.Query("SELECT id, name, category_id, description FROM tasks ORDER BY name")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	var tasks []Task
+	var tasks []pkgmodel.Task
 	for rows.Next() {
-		var task Task
+		var task pkgmodel.Task
 		var categoryID sql.NullInt64
 		err := rows.Scan(&task.ID, &task.Name, &categoryID, &task.Description)
 		if err != nil {
@@ -42,7 +45,7 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 func CreateTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	var req TaskRequest
+	var req pkgmodel.TaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -58,7 +61,7 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		categoryID = req.CategoryID
 	}
 
-	result, err := db.Exec("INSERT INTO tasks (name, category_id, description) VALUES (?, ?, ?)",
+	result, err := pkgglobal.Db.Exec("INSERT INTO tasks (name, category_id, description) VALUES (?, ?, ?)",
 		req.Name, categoryID, req.Description)
 	if err != nil {
 		log.Printf("ERROR: Failed to insert task - Name: %s, CategoryID: %v, Description: %s - Error: %v",
@@ -70,7 +73,7 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 	id, _ := result.LastInsertId()
 	log.Printf("INSERT: Created task ID %d - Name: %s, CategoryID: %d, Description: %s",
 		id, req.Name, req.CategoryID, req.Description)
-	task := Task{
+	task := pkgmodel.Task{
 		ID:          int(id),
 		Name:        req.Name,
 		CategoryID:  req.CategoryID,
@@ -90,7 +93,7 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req TaskRequest
+	var req pkgmodel.TaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -106,7 +109,7 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 		categoryID = req.CategoryID
 	}
 
-	_, err = db.Exec("UPDATE tasks SET name = ?, category_id = ?, description = ? WHERE id = ?",
+	_, err = pkgglobal.Db.Exec("UPDATE tasks SET name = ?, category_id = ?, description = ? WHERE id = ?",
 		req.Name, categoryID, req.Description, id)
 	if err != nil {
 		log.Printf("ERROR: Failed to update task ID %d - Name: %s, CategoryID: %v, Description: %s - Error: %v",
@@ -118,7 +121,7 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 	log.Printf("UPDATE: Modified task ID %d - Name: %s, CategoryID: %d, Description: %s",
 		id, req.Name, req.CategoryID, req.Description)
 
-	task := Task{
+	task := pkgmodel.Task{
 		ID:          id,
 		Name:        req.Name,
 		CategoryID:  req.CategoryID,
@@ -139,7 +142,7 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 	// Get task details before deletion for logging
 	var name, description string
 	var categoryID sql.NullInt64
-	err = db.QueryRow("SELECT name, category_id, description FROM tasks WHERE id = ?", id).
+	err = pkgglobal.Db.QueryRow("SELECT name, category_id, description FROM tasks WHERE id = ?", id).
 		Scan(&name, &categoryID, &description)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -152,7 +155,7 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM tasks WHERE id = ?", id)
+	_, err = pkgglobal.Db.Exec("DELETE FROM tasks WHERE id = ?", id)
 	if err != nil {
 		log.Printf("ERROR: Failed to delete task ID %d - Error: %v", id, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
