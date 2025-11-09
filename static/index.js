@@ -475,6 +475,9 @@ function loadEntryIntoForm(entryId) {
 }
 
 function cancelEdit() {
+    // Only show message if we were actually editing something
+    const wasEditing = editingEntryId !== null;
+    
     editingEntryId = null;
     
     // Reset form
@@ -493,7 +496,10 @@ function cancelEdit() {
     // Clear selected slots
     clearSelectedSlots();
     
-    Utils.showSuccess('Edit cancelled');
+    // Only show success message if we were actually cancelling an edit
+    if (wasEditing) {
+        Utils.showSuccess('Edit cancelled');
+    }
 }
 
 // Time Slots Functionality
@@ -662,8 +668,11 @@ function clearSelectedSlots() {
 function updateTimeInputsFromSelection() {
     if (selectedTimeSlots.length === 0) return;
     
-    // Reset editing state when selecting empty slots
-    cancelEdit();
+    // Only cancel edit mode if we were actually editing something
+    if (editingEntryId !== null) {
+        cancelEdit();
+        return; // Exit early to let cancelEdit handle the form reset
+    }
     
     // Sort selected slots by time
     const sortedSlots = selectedTimeSlots.sort((a, b) => {
